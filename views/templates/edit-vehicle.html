@@ -1,0 +1,74 @@
+{{ template "header.html" .}}
+
+
+<main class="flex-shrink-0">
+  <div class="container pt-3">
+
+    <h3> What car do you want to sell? </h3>
+
+<form action="/api/update/vehicle/{{.vehicle.ID}}/" method="POST">
+  <div class="form-group">
+    <h1> {{.vehicle.ID}}</h1>
+    <label for="description">Description</label>
+    <input type="text" name="description" class="form-control" id="description" placeholder="{{.vehicle.Description}}">
+  </div>
+  <div class="form-group">
+    <label for="enterprise_id">Enterprise Identificator</label>
+    <input type="number" name="enterprise_id" class="form-control" id="enterprise_id" placeholder="Numeric Enterprise ID">
+  </div>
+  <div class="form-group mt-2">
+    <label for="price">Car Price</label>
+    <input type="number" name="price" class="form-control" id="price" placeholder="{{.vehicle.Price}}">
+  </div>
+  <div class="form-group mt-2">
+    <label for="mileage">Mileage</label>
+    <input type="number" name="mileage" class="form-control" id="milage" placeholder="{{.vehicle.Mileage}}">
+  </div>
+  <div class="form-group mt-2">
+    <label for="manufactured">Manufactured year</label>
+    <input type="number" name="manufactured" class="form-control" id="manufactured" placeholder="{{.vehicle.ManufacturedYear}}">
+  </div>
+
+  {{/* <div class="form-group mt-2">
+    <label for="brand">Brand</label>
+    <input type="text" name="brand" class="form-control" id="brand" placeholder="{{.vehicle.CarModel.Brand}}">
+  </div> */}}
+
+  <div class="form-group mt-2">
+      <label for="brand">Brand</label>
+      <div class="input-group">
+      <select class="custom-select form-control" id="brand" name="brand">
+      <option hidden>{{.vehicle.CarModel.Brand}}</option>
+      <option value="BMW">BMW</option>
+      <option value="LADA">LADA</option>
+      <option value="MERCEDES">MERCEDES</option>
+    </select>
+  </div>
+  </div>
+
+    <div class="form-group mt-2">
+    <label for="carmodel">Car Model</label>
+    <input type="text" name="carmodel" class="form-control" id="carmodel" placeholder="{{.vehicle.CarModel.CarType}}">
+  </div>
+
+    <div class="form-group mt-2">
+    <label for="fueltankcapacity">Fuel Tank Capacity</label>
+    <input type="number" name="fueltankcapacity" class="form-control" id="fueltankcapacity" placeholder="{{.vehicle.CarModel.FuelTankCapacity}}">
+  </div>
+
+    <div class="form-group mt-2">
+    <label for="seats">Seats</label>
+    <input type="number" name="seats" class="form-control" id="seats" placeholder="{{.vehicle.CarModel.Seats}}">
+  </div>
+
+    <div class="form-group mt-2">
+    <label for="enginevolume">Engine Volume</label>
+    <input type="number" step="0.1" min="0" id="totalAmt" name="enginevolume" class="form-control" id="enginevolume" placeholder="{{.vehicle.CarModel.Seats}}">
+  </div>
+  <button type="submit" class="btn btn-primary mt-3">Ok. Apply changes.</button>
+</form>
+
+</div>
+</main>
+
+{

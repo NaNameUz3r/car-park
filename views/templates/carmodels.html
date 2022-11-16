@@ -1,0 +1,36 @@
+{{ template "header.html" .}}
+
+<main class="flex-shrink-0">
+  <div class="container pt-3">
+
+    <h3 class="mt-5">Cars specification</h3>
+
+      <table class="table mt-5">
+        <thead>
+          <tr>
+            <th scope="col">#</th>
+            <th scope="col">Brand</th>
+            <th scope="col">Car Type</th>
+            <th scope="col">Fuel Tank Cap.</th>
+            <th scope="col">Seats</th>
+            <th scope="col">Engine Volume</th>
+          </tr>
+        </thead>
+        <tbody class="table-group-divider">
+          {{ range .carmodels }}
+          <tr>
+            <th scope="row">{{.ID}}</th>
+            <td>{{.Brand}}
+            <td>{{.CarType}}</td>
+            <td>{{.FuelTankCapacity}}</td>
+            <td>{{.Seats}}</td>
+            <td>{{.EngineVolume}}</td>
+          </tr>
+          {{ end }}
+        </tbody>
+      </table>
+  </div>
+</main>
+
+
+{{ template "footer.html" .}}

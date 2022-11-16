@@ -1,0 +1,49 @@
+{{ template "header.html" .}}
+
+<main class="flex-shrink-0">
+  <div class="container pt-3">
+
+    <h3 class="mt-5">Cars in stock</h3>
+
+      <table class="table mt-5">
+        <thead>
+          <tr>
+            <th scope="col">#</th>
+            <th scope="col">Description</th>
+            <th scope="col">Mileage</th>
+            <th scope="col">Manufactured Year</th>
+            <th scope="col">$ Price</th>
+            <th scope="col">Brand</th>
+            <th scope="col"></th>
+            <th scope="col"></th>
+          </tr>
+        </thead>
+        <tbody class="table-group-divider">
+          {{ range .vehicles }}
+          <tr>
+            <th scope="row">{{.ID}}</th>
+            <td>{{.Description}}
+            <td>{{.Mileage}}</td>
+            <td>{{.ManufacturedYear}}</td>
+            <td>{{.Price}}</td>
+            <td>{{.CarModel.Brand}}</td>
+            <td>
+              <a class="btn btn-primary" href="/view/vehicles/edit/{{.ID}}/" role="button">Edit</a>
+            </td>
+            <td>
+              <form action="/api/delete/vehicle/{{.ID}}/" method="POST">
+                <button type="submit" class="btn btn-danger">Delete</button>
+              </form>
+            </td>
+
+          </tr>
+          {{ end }}
+        </tbody>
+      </table>
+          <a class="btn btn-primary btn-lg" href="/view/vehicles/create" role="button">Add car in stock.</a>
+
+  </div>
+</main>
+
+
+{{ template "footer.html" .}}

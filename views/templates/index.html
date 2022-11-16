@@ -1,56 +1,58 @@
-<!--Embed the header.html template-->
 {{ template "header.html" .}}
-
-<header>
-<nav class="navbar navbar-expand-md navbar-dark bg-dark fixed-top">
-  <div class="container-fluid">
-    <a class="navbar-brand" href="/view/vehicles">CarMarket</a>
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
-      <span class="navbar-toggler-icon"></span>
-    </button>
-    <div class="collapse navbar-collapse" id="navbarSupportedContent">
-      <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-        <li class="nav-item">
-          <a class="nav-link active" aria-current="page" href="/view/vehicles">Home</a>
-        </li>
-      </ul>
-    </div>
-  </div>
-</nav>
-</header>
-
 
 <main class="flex-shrink-0">
   <div class="container pt-3">
 
-    <h3 class="mt-5">Cars in stock </h3>
 
-      <table class="table mt-5">
-        <thead>
-          <tr>
-            <th scope="col">#</th>
-            <th scope="col">Description</th>
-            <th scope="col">Mileage</th>
-            <th scope="col">Manufactured Year</th>
-            <th scope="col">$ Price</th>
-          </tr>
-        </thead>
-        <tbody class="table-group-divider">
-          {{ range .vehicles }}
-          <tr>
-            <th scope="row">{{.ID}}</th>
-            <td>{{.Description}}
-            <td>{{.Mileage}}</td>
-            <td>{{.ManufacturedYear}}</td>
-            <td>{{.Price}}</td>
-          </tr>
-          {{ end }}
-        </tbody>
-      </table>
+    <div class="p-5 mb-4 bg-light rounded-3">
+        <div class="container-fluid py-5">
+            <h1 class="display-5 fw-bold">Welcome to CarMarket!</h1>
+            <p class="col-md-8 fs-5">
+            Looking for a place to sell, buy or trade an old rusty car?
+            <br>
+            Or even maybe you just need money asap and
+            you have a brand new car to sell?
+            <br>
+            This is the place you were looking for!
+            </p>
+            <a class="btn btn-primary btn-lg" href="/view/vehicles" role="button">Go to Stock</a>
+            {{/* <button class="btn btn-primary btn-lg" type="button">Go to Stock</button> */}}
+        </div>
+    </div>
+
+    <div class="row align-items-md-stretch">
+      <div class="col-md-6">
+        <div class="h-100 p-5 text-white bg-dark rounded-3">
+          <h2>No documents for the car?</h2>
+          <p>
+            - We can COMPLETELY close the deal without the paperwork!
+            <br>
+            - Even if your car has been in several accidents!
+            <br>
+            - Even if there was a murder in the car...
+            <br>
+            - <b>We buy it!</b>
+          </p>
+          <a class="btn btn-light btn-lg" href="/view/vehicles/create" role="button">Sell a car!</a>
+
+
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="h-100 p-5 bg-light border rounded-3">
+          <h2>From truck to jelly bug</h2>
+          <p>We always have a lot of different cars in stock.
+          <br> Hellfire trucks and handy sedans.
+          <br> Goofy hatchbacks, or speedy sportcar?
+          <br> You will find what suits you.
+          </p>
+          <a class="btn btn-outline-secondary btn-lg" href="/view/carmodels/" role="button">Models available</a>
+        </div>
+      </div>
+    </div>
 
   </div>
 </main>
 
 
-<!--Embed the footer.html template-->
 {{ template "footer.html" .}}
