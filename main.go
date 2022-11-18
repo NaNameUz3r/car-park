@@ -43,7 +43,10 @@ func main() {
 	fmt.Println(accounts)
 
 	server := gin.New()
-	server.Use(gin.Recovery(), middlewares.Logger(), middlewares.BasicAuth(accounts))
+	server.Use(gin.Recovery(),
+		middlewares.Logger(),
+		middlewares.BasicAuth(accounts),
+		middlewares.CSRF())
 
 	server.Static("/css", "./views/templates/css")
 	server.StaticFile("/logo.svg", "./views/assets/logo-1-white.svg")
