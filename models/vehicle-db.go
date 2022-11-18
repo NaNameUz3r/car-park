@@ -7,6 +7,8 @@ import (
 	// _ "github.com/jinzhu/gorm/dialects/postgres"
 	"fmt"
 
+	"github.com/lib/pq"
+	"golang.org/x/exp/slices"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -24,6 +26,12 @@ type VehicleDB interface {
 
 	SaveEnterprise(enterprise Enterprise) error
 	SaveDriver(driver Driver) error
+	SaveManager(manager Manager) error
+	FindAllManagers() []Manager
+	ManagerByID(id uint) Manager
+	ManagerByCreds(username, password string) Manager
+	ManagerFindAllVehicles(accessibleEnterprises pq.Int64Array, preload bool) []Vehicle
+	ManagerFindAllDrivers(accessibleEnterprises pq.Int64Array) []Driver
 
 	FindAllEnterprises() []Enterprise
 	FindAllDrivers() []Driver
@@ -46,7 +54,7 @@ func NewVehicleDB() VehicleDB {
 	}
 	// db.LogMode(true)
 
-	db.AutoMigrate(&Enterprise{})
+	db.AutoMigrate(&Enterprise{}, &Manager{})
 	db.AutoMigrate(&CarModel{}, &Vehicle{}, &Driver{})
 	return &dbConn{
 		connection: db,
@@ -110,6 +118,20 @@ func (db *dbConn) FindAllVehicles(preload bool) []Vehicle {
 	return vehicles
 }
 
+func (db *dbConn) ManagerFindAllVehicles(accessibleEnterprises pq.Int64Array, preload bool) []Vehicle {
+
+	array := make([]int64, len(accessibleEnterprises))
+	copy(array, accessibleEnterprises)
+	var vehicles []Vehicle
+	if preload {
+		db.connection.Preload("CarModel").Find(&vehicles)
+	} else {
+		db.connection.Preload("Drivers").Where("enterprise_id IN ?", array).Select("id", "enterprise_id", "description", "price", "mileage", "manufactured_year", "car_model_id").Find(&vehicles)
+		// db.connection.Model(&vehicle).Association("Drivers").Find(&vehicle)
+	}
+	return vehicles
+}
+
 func (db *dbConn) FindAllCarModels() []CarModel {
 	var carModels []CarModel
 	db.connection.Find(&carModels)
@@ -128,12 +150,59 @@ func (db *dbConn) FindAllDrivers() []Driver {
 	return drivers
 }
 
+func (db *dbConn) ManagerFindAllDrivers(accessibleEnterprises pq.Int64Array) []Driver {
+
+	array := make([]int64, len(accessibleEnterprises))
+	copy(array, accessibleEnterprises)
+	var vehicles []Vehicle
+
+	var drivers []Driver
+	db.connection.Preload("Drivers").Where("enterprise_id IN ?", array).Select("id", "enterprise_id", "description", "price", "mileage", "manufactured_year", "car_model_id").Find(&vehicles)
+	for _, v := range vehicles {
+		if slices.Contains(array, int64(v.EnterpriseID)) {
+			for _, d := range v.Drivers {
+				drivers = append(drivers, d)
+			}
+		}
+	}
+	return drivers
+}
+
+func (db *dbConn) FindAllManagers() []Manager {
+	var managers []Manager
+	db.connection.Find(&managers)
+	return managers
+}
+
+func (db *dbConn) ManagerByID(id uint) Manager {
+	var manager Manager
+	manager.ID = id
+	db.connection.Find(&manager)
+	return manager
+
+}
+
+func (db *dbConn) ManagerByCreds(username, password string) Manager {
+	var manager Manager
+	// manager.Login = username
+	// manager.Password = password
+
+	db.connection.Where("login = ?", username).Where("password = ?", password).First(&manager)
+	fmt.Println("MANAGER FROM DB: ", manager)
+	return manager
+
+}
+
 func (db *dbConn) SaveEnterprise(e Enterprise) error {
 	return db.connection.Create(&e).Error
 }
 
 func (db *dbConn) SaveDriver(d Driver) error {
 	return db.connection.Create(&d).Error
+}
+
+func (db *dbConn) SaveManager(m Manager) error {
+	return db.connection.Create(&m).Error
 }
 
 // DROPDATABASE!

@@ -1,6 +1,8 @@
 package models
 
-import "gorm.io/gorm"
+import (
+	"gorm.io/gorm"
+)
 
 type Vehicle struct {
 	gorm.Model
@@ -13,7 +15,7 @@ type Vehicle struct {
 	EnterpriseID uint       `json:"enterprise_id" form:"enterprise_id"`
 	CarModel     CarModel   `json:"-" binding:"required"`
 	CarModelID   uint       `json:"carmodel_id" form:"-"`
-	Drivers      []Driver   `gorm:"foreignKey:VehicleID"`
+	Drivers      []Driver   `json:"-" gorm:"foreignKey:VehicleID"`
 }
 
 type CarModel struct {

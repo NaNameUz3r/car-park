@@ -34,8 +34,16 @@ func main() {
 	setupLogFile()
 	defer vehicleDB.CloseConnection()
 
+	managers := enterpriseController.FindAllManagers()
+	accounts := gin.Accounts{}
+	for _, m := range managers {
+		accounts[m.Login] = m.Password
+	}
+	accounts["superadmin"] = "superadminqwerty"
+	fmt.Println(accounts)
+
 	server := gin.New()
-	server.Use(gin.Recovery(), middlewares.Logger())
+	server.Use(gin.Recovery(), middlewares.Logger(), middlewares.BasicAuth(accounts))
 
 	server.Static("/css", "./views/templates/css")
 	server.StaticFile("/logo.svg", "./views/assets/logo-1-white.svg")
@@ -61,8 +69,23 @@ func main() {
 	apiRoutes := server.Group("/api")
 	{
 
-		apiRoutes.GET("vehicles", func(ctx *gin.Context) {
-			ctx.JSON(http.StatusOK, vehicleController.FindAllVehicles(false))
+		// ID here is Manager id
+		apiRoutes.GET("/manager/:id/vehicles/", func(ctx *gin.Context) {
+			err := enterpriseController.AuthManager(ctx)
+			if err != nil {
+				ctx.JSON(401, "Unauthorized")
+			} else {
+				ctx.JSON(http.StatusOK, enterpriseController.ManagerFindAllVehicles(ctx, false))
+			}
+		})
+
+		apiRoutes.GET("/manager/:id/drivers/", func(ctx *gin.Context) {
+			err := enterpriseController.AuthManager(ctx)
+			if err != nil {
+				ctx.JSON(401, "Unauthorized")
+			} else {
+				ctx.JSON(http.StatusOK, enterpriseController.ManagerFindAllDrivers(ctx))
+			}
 		})
 
 		// POST /api/vehicles creates new Vehicle object with nested
@@ -126,6 +149,15 @@ func main() {
 
 		})
 
+		apiRoutes.POST("/save/managers", func(ctx *gin.Context) {
+			err := enterpriseController.SaveManager(ctx)
+			if err != nil {
+				ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			} else {
+				ctx.JSON(http.StatusOK, gin.H{"message": "New manager added OK"})
+			}
+		})
+
 		apiRoutes.GET("/enterprises", func(ctx *gin.Context) {
 			ctx.JSON(http.StatusOK, enterpriseController.FindAllEnterprises())
 		})
@@ -135,6 +167,7 @@ func main() {
 		})
 	}
 
+	fmt.Println(accounts)
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8888"
