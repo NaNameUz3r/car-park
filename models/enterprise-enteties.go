@@ -36,6 +36,11 @@ type EnterpriseService interface {
 	SaveEnterprise(Enterprise) error
 	SaveDriver(Driver) error
 	SaveManager(Manager) error
+	SaveVehicle(Vehicle) error
+	UpdateVehicle(Vehicle) error
+	DeleteVehicle(Vehicle) error
+
+	ManagerVehicleByID(id uint) Vehicle
 
 	FindAllEnterprises() []Enterprise
 	FindAllDrivers() []Driver
@@ -57,6 +62,10 @@ func NewEnterpriseSerivce(vehicleDB VehicleDB) EnterpriseService {
 	}
 }
 
+func (service *enterpriseSerivce) ManagerVehicleByID(id uint) Vehicle {
+	return service.vehicleDB.VehicleByID(id)
+}
+
 func (service *enterpriseSerivce) SaveEnterprise(e Enterprise) error {
 	return service.vehicleDB.SaveEnterprise(e)
 }
@@ -67,6 +76,18 @@ func (service *enterpriseSerivce) SaveDriver(d Driver) error {
 
 func (service *enterpriseSerivce) SaveManager(m Manager) error {
 	return service.vehicleDB.SaveManager(m)
+}
+
+func (service *enterpriseSerivce) SaveVehicle(v Vehicle) error {
+	return service.vehicleDB.SaveVehicle(v)
+}
+
+func (service *enterpriseSerivce) UpdateVehicle(v Vehicle) error {
+	return service.vehicleDB.UpdateVehicle(v)
+}
+
+func (service *enterpriseSerivce) DeleteVehicle(v Vehicle) error {
+	return service.vehicleDB.DeleteVehicle(v)
 }
 
 func (service *enterpriseSerivce) FindAllEnterprises() []Enterprise {

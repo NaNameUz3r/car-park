@@ -45,8 +45,7 @@ func main() {
 	server := gin.New()
 	server.Use(gin.Recovery(),
 		middlewares.Logger(),
-		middlewares.BasicAuth(accounts),
-		middlewares.CSRF())
+		middlewares.BasicAuth(accounts))
 
 	server.Static("/css", "./views/templates/css")
 	server.StaticFile("/logo.svg", "./views/assets/logo-1-white.svg")
@@ -61,14 +60,16 @@ func main() {
 			"code": "404", "message": "PAGE NOT FOUND"})
 	})
 
-	viewRoutes := server.Group("/view")
+	viewRoutes := server.Group("/view").Use(middlewares.CSRF())
 	{
 		viewRoutes.GET("/vehicles", vehicleController.ShowAllVehicles)
 		viewRoutes.GET("/vehicles/create", vehicleController.ShowCreateVehicle)
 		viewRoutes.GET("/vehicles/edit/:id", vehicleController.ShowEditVehicle)
 		viewRoutes.GET("/carmodels", vehicleController.ShowAllCarModels)
 	}
-
+	// TODO: Move "view" CRUD routes from /api to view group for applying CSRF for all of them.
+	// TODO: It will be better to implement JWT in place of basic auth, at least for /api
+	// TODO: Damn boah, this mess needs to be really reorganized...
 	apiRoutes := server.Group("/api")
 	{
 
@@ -91,9 +92,59 @@ func main() {
 			}
 		})
 
+		apiRoutes.POST("/manager/:id/vehicle/create", func(ctx *gin.Context) {
+			err := enterpriseController.AuthManager(ctx)
+			if err != nil {
+				ctx.JSON(401, "Unauthorized")
+			} else {
+				err := enterpriseController.ManagerSaveVehicle(ctx)
+				if err != nil {
+					ctx.JSON(http.StatusInternalServerError, gin.H{
+						"ERROR": err.Error()})
+
+				} else {
+					ctx.JSON(http.StatusOK, gin.H{"message": "New Vehicle added OK"})
+				}
+			}
+
+		})
+
+		apiRoutes.POST("/manager/:id/vehicle/:vehicle_id/update", func(ctx *gin.Context) {
+			err := enterpriseController.AuthManager(ctx)
+			if err != nil {
+				ctx.JSON(401, "Unauthorized")
+			} else {
+				err := enterpriseController.ManagerUpdateVehicle(ctx)
+				if err != nil {
+					ctx.JSON(http.StatusInternalServerError, gin.H{
+						"ERROR": err.Error()})
+
+				} else {
+					ctx.JSON(http.StatusOK, gin.H{"message": "New Vehicle updated OK"})
+				}
+			}
+
+		})
+
+		apiRoutes.POST("/manager/:id/vehicle/:vehicle_id/delete", func(ctx *gin.Context) {
+			err := enterpriseController.AuthManager(ctx)
+			if err != nil {
+				ctx.JSON(401, "Unauthorized")
+			} else {
+				err := enterpriseController.ManagerDeleteVehicle(ctx)
+				if err != nil {
+					ctx.JSON(http.StatusInternalServerError, gin.H{
+						"ERROR": err.Error()})
+
+				} else {
+					ctx.JSON(http.StatusOK, gin.H{"message": "Vehicle deleted OK"})
+				}
+			}
+
+		})
 		// POST /api/vehicles creates new Vehicle object with nested
 		// CarModle in it.
-		apiRoutes.POST("/vehicles", func(ctx *gin.Context) {
+		apiRoutes.POST("/vehicles", middlewares.CSRF(), func(ctx *gin.Context) {
 			err := vehicleController.SaveVehicle(ctx)
 			if err != nil {
 				ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -107,7 +158,7 @@ func main() {
 
 		// POST /api/update/vehicle/:id updates existing Vehicle with nested
 		// CarModel by vehicle ID. Can update only CarModel.
-		apiRoutes.POST("/update/vehicle/:id", func(ctx *gin.Context) {
+		apiRoutes.POST("/update/vehicle/:id", middlewares.CSRF(), func(ctx *gin.Context) {
 			err := vehicleController.UpdateVehicle(ctx)
 			if err != nil {
 				ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})

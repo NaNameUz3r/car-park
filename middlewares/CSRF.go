@@ -12,9 +12,10 @@ var csrfMd func(http.Handler) http.Handler
 
 func init() {
 	// TODO: secret token from .env of config file.
-	csrfMd = csrf.Protect([]byte("!!!THISISAVERYINSECUREBYTEARRAYFORCSRFTOKEN!!!"),
+	csrfMd = csrf.Protect([]byte("32-byte-long-auth-key"),
 		csrf.MaxAge(0),
-		csrf.Secure(true),
+		csrf.Path("/"),
+		csrf.Secure(false),
 		csrf.ErrorHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusForbidden)
 			w.Write([]byte(`{"message": "Forbidden. Invalid CSRF Token"}`))

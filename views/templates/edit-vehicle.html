@@ -7,6 +7,7 @@
     <h3> What car do you want to sell? </h3>
 
 <form action="/api/update/vehicle/{{.vehicle.ID}}/" method="POST">
+{{ .csrfField }}
   <div class="form-group">
     <h1> {{.vehicle.ID}}</h1>
     <label for="description">Description</label>

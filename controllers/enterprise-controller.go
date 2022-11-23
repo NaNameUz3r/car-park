@@ -9,6 +9,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
+	"github.com/imdario/mergo"
 )
 
 type EnterpriseController interface {
@@ -21,6 +22,10 @@ type EnterpriseController interface {
 
 	ManagerFindAllVehicles(ctx *gin.Context, preload bool) []models.Vehicle
 	ManagerFindAllDrivers(ctx *gin.Context) []models.Driver
+	ManagerSaveVehicle(ctx *gin.Context) error
+	ManagerUpdateVehicle(ctx *gin.Context) error
+	ManagerDeleteVehicle(ctx *gin.Context) error
+
 	AuthManager(ctx *gin.Context) error
 }
 
@@ -94,9 +99,6 @@ func (c *enterpriseController) FindAllManagers() []models.Manager {
 func (c *enterpriseController) ManagerFindAllVehicles(ctx *gin.Context, preload bool) []models.Vehicle {
 	managerId, _ := strconv.ParseUint(ctx.Param("id"), 0, 0)
 	manager := c.service.ManagerByID(uint(managerId))
-	// authheader := ctx.Request.Header["Authorization"]
-	// encoded := strings.Split(authheader[0], " ")[1]
-	// fmt.Println(base64.StdEncoding.DecodeString(encoded))
 	accessibleEnterprises := manager.AccessibleEnterprises
 	return c.service.ManagerFindAllVehicles(accessibleEnterprises, preload)
 }
@@ -104,11 +106,77 @@ func (c *enterpriseController) ManagerFindAllVehicles(ctx *gin.Context, preload 
 func (c *enterpriseController) ManagerFindAllDrivers(ctx *gin.Context) []models.Driver {
 	managerId, _ := strconv.ParseUint(ctx.Param("id"), 0, 0)
 	manager := c.service.ManagerByID(uint(managerId))
-	// authheader := ctx.Request.Header["Authorization"]
-	// encoded := strings.Split(authheader[0], " ")[1]
-	// fmt.Println(base64.StdEncoding.DecodeString(encoded))
 	accessibleEnterprises := manager.AccessibleEnterprises
 	return c.service.ManagerFindAllDrivers(accessibleEnterprises)
+}
+
+func (c *enterpriseController) ManagerSaveVehicle(ctx *gin.Context) error {
+	var vehicle models.Vehicle
+	err := ctx.Bind(&vehicle)
+	vehicleBrand := vehicle.CarModel.Brand
+	if vehicleBrand == "Choose car Brand" || vehicleBrand == "" {
+		vehicle.CarModel.Brand = "No Brand"
+	}
+
+	err = validate.Struct(vehicle)
+	if err != nil {
+		return err
+	}
+
+	if c.authManagerUpdates(ctx, int(vehicle.EnterpriseID)) == true {
+		err = c.service.SaveVehicle(vehicle)
+	} else {
+		err = fmt.Errorf("Wrong Enterprise ID")
+	}
+	return err
+
+}
+
+func (c *enterpriseController) ManagerUpdateVehicle(ctx *gin.Context) error {
+	var newVehicle models.Vehicle
+	err := ctx.Bind(&newVehicle)
+	err = validate.Struct(newVehicle)
+	if c.authManagerUpdates(ctx, int(newVehicle.EnterpriseID)) != true {
+		err = fmt.Errorf("Wrong Enterprise ID")
+		return err
+	} else {
+
+		var vehicleOrig models.Vehicle
+		vehcleID, _ := strconv.ParseUint(ctx.Param("vehicle_id"), 0, 0)
+		vehicleOrig = c.service.ManagerVehicleByID(uint(vehcleID))
+		err = validate.Struct(vehicleOrig)
+		if err != nil {
+			return err
+		}
+
+		mergo.Merge(&newVehicle, vehicleOrig)
+		err = validate.Struct(newVehicle)
+		if err != nil {
+			return err
+		}
+
+		return c.service.UpdateVehicle(newVehicle)
+
+	}
+}
+
+func (c *enterpriseController) ManagerDeleteVehicle(ctx *gin.Context) error {
+	var vehicle models.Vehicle
+	id, err := strconv.ParseUint(ctx.Param("vehicle_id"), 0, 0)
+	if err != nil {
+		return err
+	}
+
+	vehicle.ID = uint(id)
+
+	if c.authManagerUpdates(ctx, int(vehicle.ID)) != true {
+		err = fmt.Errorf("Wrong Vehicle ID")
+		return err
+	} else {
+		c.service.DeleteVehicle(vehicle)
+		return nil
+	}
+
 }
 
 func (c *enterpriseController) AuthManager(ctx *gin.Context) error {
@@ -124,8 +192,6 @@ func (c *enterpriseController) AuthManager(ctx *gin.Context) error {
 	manager := c.service.ManagerByCreds(credsPair[0], credsPair[1])
 	managerIdFromURL, _ := strconv.ParseUint(ctx.Param("id"), 0, 0)
 
-	fmt.Println("THIS IS FUCKING MANAGER ID", manager.ID)
-	fmt.Println("THIS IS FUCKING IN FROM URL", managerIdFromURL)
 	if len(credsPair) != 2 || manager.ID != uint(managerIdFromURL) {
 		manager = models.Manager{}
 		return fmt.Errorf("Unauthorized")
@@ -133,9 +199,19 @@ func (c *enterpriseController) AuthManager(ctx *gin.Context) error {
 	return nil
 }
 
-// func (c *enterpriseController) authenticateManager(username, password string) bool {
+func (c *enterpriseController) authManagerUpdates(ctx *gin.Context, enterpriseID int) bool {
+	access := false
 
-// 	manager := c.service.ManagerByCreds(username, password)
-// 	fmt.Println(manager)
-// 	return true
-// }
+	err := c.AuthManager(ctx)
+	if err != nil {
+		return access
+	}
+
+	managerIdFromURL, _ := strconv.ParseUint(ctx.Param("id"), 0, 0)
+	manager := c.service.ManagerByID(uint(managerIdFromURL))
+	array := make([]int64, len(manager.AccessibleEnterprises))
+	copy(array, manager.AccessibleEnterprises)
+	access = contains(array, int64(enterpriseID))
+	return access
+
+}

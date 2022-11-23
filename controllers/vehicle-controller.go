@@ -8,6 +8,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
+	"github.com/gorilla/csrf"
 	"github.com/imdario/mergo"
 )
 
@@ -47,17 +48,11 @@ func (c *vehicleController) FindAllCarModels() []models.CarModel {
 func (c *vehicleController) SaveVehicle(ctx *gin.Context) error {
 	var vehicle models.Vehicle
 
-	fmt.Println("HELLOFROM SAVE CONTROLLER")
-	fmt.Println(vehicle)
 	err := ctx.Bind(&vehicle)
 	vehicleBrand := vehicle.CarModel.Brand
 	if vehicleBrand == "Choose car Brand" || vehicleBrand == "" {
 		vehicle.CarModel.Brand = "No Brand"
 	}
-	fmt.Println(vehicle)
-	// err := ctx.ShouldBind(&vehicle)
-	// ctx.Request.ParseForm()
-	// fmt.Println(ctx.Request.PostForm)
 
 	err = validate.Struct(vehicle)
 	if err != nil {
@@ -73,7 +68,6 @@ func (c *vehicleController) UpdateVehicle(ctx *gin.Context) error {
 
 	id, _ := strconv.ParseUint(ctx.Param("id"), 0, 0)
 
-	fmt.Println(ctx.Param("id") + " ID BLYAD!")
 	vehicleOrig = c.service.VehicleByID(uint(id))
 	validate.Struct(vehicleOrig)
 
@@ -103,7 +97,6 @@ func (c *vehicleController) DeleteVehicle(ctx *gin.Context) error {
 		return err
 	}
 	vehicle.ID = uint(id)
-	fmt.Println(ctx.ContentType() + " COOOOOOOOOOONTENTTYPE!")
 	c.service.DeleteVehicle(vehicle)
 	return nil
 }
@@ -111,8 +104,9 @@ func (c *vehicleController) DeleteVehicle(ctx *gin.Context) error {
 func (c *vehicleController) ShowAllVehicles(ctx *gin.Context) {
 	vehicles := c.service.FindAllVehicles(true)
 	data := gin.H{
-		"title":    "Vihecles Stock",
-		"vehicles": vehicles,
+		"title":          "Vihecles Stock",
+		"vehicles":       vehicles,
+		csrf.TemplateTag: csrf.TemplateField(ctx.Request),
 	}
 
 	ctx.HTML(http.StatusOK, "vehicles.html", data)
@@ -129,7 +123,10 @@ func (c *vehicleController) ShowAllCarModels(ctx *gin.Context) {
 }
 
 func (c *vehicleController) ShowCreateVehicle(ctx *gin.Context) {
-	ctx.HTML(http.StatusOK, "create-vehicle.html", gin.H{})
+	ctx.HTML(http.StatusOK, "create-vehicle.html", gin.H{
+
+		csrf.TemplateTag: csrf.TemplateField(ctx.Request),
+	})
 }
 
 func (c *vehicleController) ShowEditVehicle(ctx *gin.Context) {
@@ -142,8 +139,9 @@ func (c *vehicleController) ShowEditVehicle(ctx *gin.Context) {
 	validate.Struct(vehicle)
 	fmt.Println(vehicle)
 	data := gin.H{
-		"title":   "Edit car in stock",
-		"vehicle": vehicle,
+		"title":          "Edit car in stock",
+		"vehicle":        vehicle,
+		csrf.TemplateTag: csrf.TemplateField(ctx.Request),
 	}
 
 	ctx.HTML(http.StatusOK, "edit-vehicle.html", data)
