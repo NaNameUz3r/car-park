@@ -15,13 +15,14 @@ import (
 )
 
 type VehicleDB interface {
-	SaveVehicle(vehicle Vehicle) error
+	SaveVehicle(vehicle Vehicle) (err error, ID uint)
 	UpdateVehicle(vehicle Vehicle) error
 	DeleteVehicle(vehicle Vehicle) error
 	FindAllVehicles(preload bool) []Vehicle
 	VehicleByID(id uint) Vehicle
 	FindAllCarModels() []CarModel
 	CloseConnection()
+	AutoMigrate()
 	DestructiveReset() error
 
 	SaveEnterprise(enterprise Enterprise) error
@@ -54,8 +55,6 @@ func NewVehicleDB() VehicleDB {
 	}
 	// db.LogMode(true)
 
-	db.AutoMigrate(&Enterprise{}, &Manager{})
-	db.AutoMigrate(&CarModel{}, &Vehicle{}, &Driver{})
 	return &dbConn{
 		connection: db,
 	}
@@ -74,8 +73,9 @@ func (db *dbConn) CloseConnection() {
 	}
 }
 
-func (db *dbConn) SaveVehicle(v Vehicle) error {
-	return db.connection.Create(&v).Error
+func (db *dbConn) SaveVehicle(v Vehicle) (err error, ID uint) {
+	result := db.connection.Create(&v)
+	return result.Error, v.ID
 }
 
 func (db *dbConn) UpdateVehicle(v Vehicle) error {
@@ -205,14 +205,19 @@ func (db *dbConn) SaveManager(m Manager) error {
 	return db.connection.Create(&m).Error
 }
 
+func (db *dbConn) AutoMigrate() {
+	db.connection.AutoMigrate(&Enterprise{}, &Manager{})
+	db.connection.AutoMigrate(&CarModel{}, &Vehicle{}, &Driver{})
+}
+
 // DROPDATABASE!
 func (db *dbConn) DestructiveReset() error {
-	err := db.connection.Delete(&Vehicle{}, &CarModel{}).Error
+	err := db.connection.Delete(&Vehicle{}, &CarModel{}, &Enterprise{}, &Manager{}, &Driver{}).Error
 	if err != nil {
 		return err
 	}
 
 	//TODO: This need to be refactored
-	db.connection.AutoMigrate(&Vehicle{})
+	// db.AutoMigrate()
 	return nil
 }

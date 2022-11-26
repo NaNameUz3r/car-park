@@ -13,7 +13,7 @@ type Vehicle struct {
 
 	Enterprise   Enterprise `gorm:"foreignKey:EnterpriseID" json:"-"`
 	EnterpriseID uint       `json:"enterprise_id" form:"enterprise_id"`
-	CarModel     CarModel   `json:"-" binding:"required"`
+	CarModel     CarModel   `json:"car_model" binding:"required"`
 	CarModelID   uint       `json:"carmodel_id" form:"-"`
 	Drivers      []Driver   `json:"-" gorm:"foreignKey:VehicleID"`
 }
@@ -28,7 +28,7 @@ type CarModel struct {
 }
 
 type VehicleService interface {
-	SaveVehicle(Vehicle) error
+	SaveVehicle(Vehicle) (err error, ID uint)
 	UpdateVehicle(Vehicle) error
 	DeleteVehicle(Vehicle) error
 	FindAllVehicles(preload bool) []Vehicle
@@ -46,7 +46,7 @@ func NewVehicleService(vehicleDB VehicleDB) VehicleService {
 	}
 }
 
-func (service *vehicleService) SaveVehicle(v Vehicle) error {
+func (service *vehicleService) SaveVehicle(v Vehicle) (err error, ID uint) {
 	return service.vehicleDB.SaveVehicle(v)
 }
 

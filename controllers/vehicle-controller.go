@@ -59,7 +59,7 @@ func (c *vehicleController) SaveVehicle(ctx *gin.Context) error {
 		return err
 	}
 
-	err = c.service.SaveVehicle(vehicle)
+	err, _ = c.service.SaveVehicle(vehicle)
 	return err
 }
 

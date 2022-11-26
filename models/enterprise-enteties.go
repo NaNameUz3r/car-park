@@ -36,7 +36,7 @@ type EnterpriseService interface {
 	SaveEnterprise(Enterprise) error
 	SaveDriver(Driver) error
 	SaveManager(Manager) error
-	SaveVehicle(Vehicle) error
+	SaveVehicle(Vehicle) (err error, ID uint)
 	UpdateVehicle(Vehicle) error
 	DeleteVehicle(Vehicle) error
 
@@ -78,7 +78,7 @@ func (service *enterpriseSerivce) SaveManager(m Manager) error {
 	return service.vehicleDB.SaveManager(m)
 }
 
-func (service *enterpriseSerivce) SaveVehicle(v Vehicle) error {
+func (service *enterpriseSerivce) SaveVehicle(v Vehicle) (err error, ID uint) {
 	return service.vehicleDB.SaveVehicle(v)
 }
 

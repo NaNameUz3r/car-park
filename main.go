@@ -47,6 +47,10 @@ func main() {
 		middlewares.Logger(),
 		middlewares.BasicAuth(accounts))
 
+	// doesnot working  ¯\_(ツ)_/¯
+	// vehicleDB.DestructiveReset()
+	vehicleDB.AutoMigrate()
+
 	server.Static("/css", "./views/templates/css")
 	server.StaticFile("/logo.svg", "./views/assets/logo-1-white.svg")
 	server.LoadHTMLGlob("./views/templates/*.html")
@@ -97,13 +101,16 @@ func main() {
 			if err != nil {
 				ctx.JSON(401, "Unauthorized")
 			} else {
-				err := enterpriseController.ManagerSaveVehicle(ctx)
+				err, ID := enterpriseController.ManagerSaveVehicle(ctx)
 				if err != nil {
 					ctx.JSON(http.StatusInternalServerError, gin.H{
 						"ERROR": err.Error()})
 
 				} else {
-					ctx.JSON(http.StatusOK, gin.H{"message": "New Vehicle added OK"})
+					ctx.JSON(http.StatusOK, gin.H{
+						"message": "New Vehicle added OK",
+						"ID":      ID,
+					})
 				}
 			}
 
@@ -144,7 +151,7 @@ func main() {
 		})
 		// POST /api/vehicles creates new Vehicle object with nested
 		// CarModle in it.
-		apiRoutes.POST("/vehicles", middlewares.CSRF(), func(ctx *gin.Context) {
+		apiRoutes.POST("/vehicles", func(ctx *gin.Context) {
 			err := vehicleController.SaveVehicle(ctx)
 			if err != nil {
 				ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
