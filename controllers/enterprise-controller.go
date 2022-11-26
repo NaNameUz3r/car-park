@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"car-park/models"
+	"car-park/utils"
 	"encoding/base64"
 	"fmt"
 	"strconv"
@@ -100,7 +101,11 @@ func (c *enterpriseController) ManagerFindAllVehicles(ctx *gin.Context, preload 
 	managerId, _ := strconv.ParseUint(ctx.Param("id"), 0, 0)
 	manager := c.service.ManagerByID(uint(managerId))
 	accessibleEnterprises := manager.AccessibleEnterprises
-	return c.service.ManagerFindAllVehicles(accessibleEnterprises, preload)
+
+	pagination := utils.GenPaginationFromRequest(ctx)
+	vehicles := c.service.ManagerFindAllVehicles(accessibleEnterprises, pagination, preload)
+
+	return vehicles
 }
 
 func (c *enterpriseController) ManagerFindAllDrivers(ctx *gin.Context) []models.Driver {
@@ -199,6 +204,7 @@ func (c *enterpriseController) AuthManager(ctx *gin.Context) error {
 
 	if len(credsPair) != 2 || manager.ID != uint(managerIdFromURL) {
 		manager = models.Manager{}
+		fmt.Println("TROUBLE HERE")
 		return fmt.Errorf("Unauthorized")
 	}
 	return nil

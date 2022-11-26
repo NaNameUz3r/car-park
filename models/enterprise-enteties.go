@@ -47,7 +47,7 @@ type EnterpriseService interface {
 	FindAllManagers() []Manager
 
 	ManagerByID(id uint) Manager
-	ManagerFindAllVehicles(accessibleEnterprises pq.Int64Array, preload bool) []Vehicle
+	ManagerFindAllVehicles(accessibleEnterprises pq.Int64Array, paginations Pagination, preload bool) []Vehicle
 	ManagerFindAllDrivers(accessibleEnterprises pq.Int64Array) []Driver
 	ManagerByCreds(username, password string) Manager
 }
@@ -109,8 +109,8 @@ func (service *enterpriseSerivce) ManagerByCreds(username, password string) Mana
 	return service.vehicleDB.ManagerByCreds(username, password)
 }
 
-func (service *enterpriseSerivce) ManagerFindAllVehicles(accessibleEnterprises pq.Int64Array, preload bool) []Vehicle {
-	return service.vehicleDB.ManagerFindAllVehicles(accessibleEnterprises, preload)
+func (service *enterpriseSerivce) ManagerFindAllVehicles(accessibleEnterprises pq.Int64Array, pagination Pagination, preload bool) []Vehicle {
+	return service.vehicleDB.ManagerFindAllVehicles(accessibleEnterprises, pagination, preload)
 }
 
 func (service *enterpriseSerivce) ManagerFindAllDrivers(accessibleEnterprises pq.Int64Array) []Driver {

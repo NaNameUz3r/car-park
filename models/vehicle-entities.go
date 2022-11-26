@@ -13,7 +13,7 @@ type Vehicle struct {
 
 	Enterprise   Enterprise `gorm:"foreignKey:EnterpriseID" json:"-"`
 	EnterpriseID uint       `json:"enterprise_id" form:"enterprise_id"`
-	CarModel     CarModel   `json:"car_model" binding:"required"`
+	CarModel     CarModel   `json:"-" binding:"required"`
 	CarModelID   uint       `json:"carmodel_id" form:"-"`
 	Drivers      []Driver   `json:"-" gorm:"foreignKey:VehicleID"`
 }

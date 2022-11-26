@@ -194,6 +194,7 @@ func main() {
 				}
 				fmt.Println(resp2)
 			}
+			resp.Body.Close()
 
 		}
 	}
