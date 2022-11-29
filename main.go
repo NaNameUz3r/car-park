@@ -51,24 +51,34 @@ func main() {
 	// vehicleDB.DestructiveReset()
 	vehicleDB.AutoMigrate()
 
-	server.Static("/css", "./views/templates/css")
+	server.Static("/css", "./views/css")
 	server.StaticFile("/logo.svg", "./views/assets/logo-1-white.svg")
 	server.LoadHTMLGlob("./views/templates/*.html")
 
-	server.GET("/", func(ctx *gin.Context) {
-		ctx.HTML(http.StatusOK, "index.html", gin.H{})
-	})
+	// server.GET("/", func(ctx *gin.Context) {
+	// 	ctx.HTML(http.StatusOK, "index.html", gin.H{})
+	// })
+
+	server.GET("/", enterpriseController.RedirectManager)
 
 	server.NoRoute(func(ctx *gin.Context) {
 		ctx.JSON(http.StatusNotFound, gin.H{
 			"code": "404", "message": "PAGE NOT FOUND"})
 	})
 
+	// viewRoutes := server.Group("/view").Use(middlewares.CSRF())
+	// {
+	// 	viewRoutes.GET("/vehicles", vehicleController.ShowAllVehicles)
+	// 	viewRoutes.GET("/vehicles/create", vehicleController.ShowCreateVehicle)
+	// 	viewRoutes.GET("/vehicles/edit/:id", vehicleController.ShowEditVehicle)
+	// 	viewRoutes.GET("/carmodels", vehicleController.ShowAllCarModels)
+	// }
+
 	viewRoutes := server.Group("/view").Use(middlewares.CSRF())
 	{
-		viewRoutes.GET("/vehicles", vehicleController.ShowAllVehicles)
-		viewRoutes.GET("/vehicles/create", vehicleController.ShowCreateVehicle)
-		viewRoutes.GET("/vehicles/edit/:id", vehicleController.ShowEditVehicle)
+		viewRoutes.GET("/manager/:id/vehicles/", enterpriseController.ManagerShowAllVehicles)
+		viewRoutes.GET("/manager/:id/vehicle/create", enterpriseController.ManagerShowCreateVehicle)
+		viewRoutes.GET("/manager/:id/vehicles/edit/:vehicle_id", enterpriseController.ManagerShowEditVehicle)
 		viewRoutes.GET("/carmodels", vehicleController.ShowAllCarModels)
 	}
 	// TODO: Move "view" CRUD routes from /api to view group for applying CSRF for all of them.
@@ -101,16 +111,15 @@ func main() {
 			if err != nil {
 				ctx.JSON(401, "Unauthorized")
 			} else {
-				err, ID := enterpriseController.ManagerSaveVehicle(ctx)
+				err := enterpriseController.ManagerSaveVehicle(ctx)
 				if err != nil {
 					ctx.JSON(http.StatusInternalServerError, gin.H{
 						"ERROR": err.Error()})
 
+				} else if ctx.ContentType() == "application/json" {
+					ctx.JSON(http.StatusOK, gin.H{"message": "Vehicle updated OK"})
 				} else {
-					ctx.JSON(http.StatusOK, gin.H{
-						"message": "New Vehicle added OK",
-						"ID":      ID,
-					})
+					ctx.Redirect(http.StatusFound, "/")
 				}
 			}
 
@@ -126,9 +135,12 @@ func main() {
 					ctx.JSON(http.StatusInternalServerError, gin.H{
 						"ERROR": err.Error()})
 
+				} else if ctx.ContentType() == "application/json" {
+					ctx.JSON(http.StatusOK, gin.H{"message": "Vehicle updated OK"})
 				} else {
-					ctx.JSON(http.StatusOK, gin.H{"message": "New Vehicle updated OK"})
+					ctx.Redirect(http.StatusFound, "/")
 				}
+
 			}
 
 		})
@@ -143,8 +155,11 @@ func main() {
 					ctx.JSON(http.StatusInternalServerError, gin.H{
 						"ERROR": err.Error()})
 
-				} else {
+				} else if ctx.ContentType() == "application/json" {
 					ctx.JSON(http.StatusOK, gin.H{"message": "Vehicle deleted OK"})
+				} else {
+					fmt.Println("DEBUG", ctx.Request.URL)
+					ctx.Redirect(http.StatusFound, "/")
 				}
 			}
 

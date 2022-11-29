@@ -8,15 +8,15 @@ import (
 )
 
 var (
-	DEFAULT_LIMIT = 5
-	DEFAULT_PAGE  = 1
-	DEFAUL_SORT   = "created_at asc"
+	DEFAULT_PAGINATION_LIMIT = 10
+	DEFAULT_PAGINATION_PAGE  = 1
+	DEFAUL_PAGINATION_SORT   = "id desc"
 )
 
 func GenPaginationFromRequest(ctx *gin.Context) models.Pagination {
-	limit := DEFAULT_LIMIT
-	page := DEFAULT_PAGE
-	sort := DEFAUL_SORT
+	limit := DEFAULT_PAGINATION_LIMIT
+	page := DEFAULT_PAGINATION_PAGE
+	sort := DEFAUL_PAGINATION_SORT
 
 	query := ctx.Request.URL.Query()
 

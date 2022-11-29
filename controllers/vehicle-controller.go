@@ -59,7 +59,7 @@ func (c *vehicleController) SaveVehicle(ctx *gin.Context) error {
 		return err
 	}
 
-	err, _ = c.service.SaveVehicle(vehicle)
+	err = c.service.SaveVehicle(vehicle)
 	return err
 }
 
@@ -108,7 +108,6 @@ func (c *vehicleController) ShowAllVehicles(ctx *gin.Context) {
 		"vehicles":       vehicles,
 		csrf.TemplateTag: csrf.TemplateField(ctx.Request),
 	}
-
 	ctx.HTML(http.StatusOK, "vehicles.html", data)
 }
 

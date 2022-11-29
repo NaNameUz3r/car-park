@@ -15,7 +15,7 @@ import (
 )
 
 type VehicleDB interface {
-	SaveVehicle(vehicle Vehicle) (err error, ID uint)
+	SaveVehicle(vehicle Vehicle) (err error)
 	UpdateVehicle(vehicle Vehicle) error
 	DeleteVehicle(vehicle Vehicle) error
 	FindAllVehicles(preload bool) []Vehicle
@@ -73,9 +73,9 @@ func (db *dbConn) CloseConnection() {
 	}
 }
 
-func (db *dbConn) SaveVehicle(v Vehicle) (err error, ID uint) {
+func (db *dbConn) SaveVehicle(v Vehicle) (err error) {
 	result := db.connection.Create(&v)
-	return result.Error, v.ID
+	return result.Error
 }
 
 func (db *dbConn) UpdateVehicle(v Vehicle) error {

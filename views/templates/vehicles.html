@@ -28,10 +28,10 @@
             <td>{{.Price}}</td>
             <td>{{.CarModel.Brand}}</td>
             <td>
-              <a class="btn btn-primary" href="/view/vehicles/edit/{{.ID}}/" role="button">Edit</a>
+              <a class="btn btn-primary" href="/view/manager/{{$.managerID}}/vehicles/edit/{{.ID}}" role="button">Edit</a>
             </td>
             <td>
-              <form action="/api/delete/vehicle/{{.ID}}/" method="POST">
+              <form action="/api/manager/{{$.managerID}}/vehicle/{{.ID}}/delete" method="POST">
                 <button type="submit" class="btn btn-danger">Delete</button>
               </form>
             </td>
@@ -40,8 +40,14 @@
           {{ end }}
         </tbody>
       </table>
-          <a class="btn btn-primary btn-lg" href="/view/vehicles/create" role="button">Add car in stock.</a>
+          <a class="btn btn-primary btn-lg" href="/view/manager/{{.managerID}}/vehicle/create" role="button">Add car in stock.</a>
 
+          {{ if ne .nextpage "nonext" }}
+            <a class="btn btn-primary btn-lg" href="{{.nextpage}}" role="button">Nextpage</a>
+          {{ end }}
+          {{ if ne .prevpage "noprev" }}
+            <a class="btn btn-primary btn-lg" href="{{.prevpage}}" role="button">Prevpage</a>
+          {{ end }}
   </div>
 </main>
 

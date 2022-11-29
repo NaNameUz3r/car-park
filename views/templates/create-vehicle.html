@@ -6,17 +6,26 @@
 
     <h3> What car do you want to sell? </h3>
 
-<form action="/api/vehicles" method="POST">
+<form action="/api/manager/{{.managerID}}/vehicle/create" method="POST">
 
 {{ .csrfField }}
   <div class="form-group">
     <label for="description">Description</label>
     <input type="text" name="description" class="form-control" id="description" placeholder="Car description">
   </div>
-  <div class="form-group">
-    <label for="enterprise_id">Enterprise Identificator</label>
-    <input type="number" name="enterprise_id" class="form-control" id="enterprise_id" placeholder="Numeric Enterprise ID">
+
+  <div class="form-group mt-2">
+      <label for="brand">Enterprise ID</label>
+      <div class="input-group">
+      <select class="custom-select form-control" id="enterprise_id" name="enterprise_id">
+      <option hidden>Choose Enterprise ID</option>
+      {{ range .accessibleEnterprises }}
+      <option value="{{.}}">{{.}}</option>
+      {{end}}
+    </select>
   </div>
+  </div>
+
   <div class="form-group mt-2">
     <label for="price">Car Price</label>
     <input type="number" name="price" class="form-control" id="price" placeholder="How much do you want for this car?">

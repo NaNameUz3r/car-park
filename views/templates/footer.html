@@ -1,11 +1,33 @@
 
 <footer class="footer mt-auto py-3 bg-light">
+  {{/* TODO: this is test snippet */}}
+  <h5>
+  <p id="date"> nodate </p>
+
+  <script>
+
+  var localdate = new Date('2011-06-29T16:52:48.000Z')
+  document.getElementById("date").innerHTML = localdate;
+  </script>
+
+  </h5>
+
+  {{/* TODO: End of test snippet. Remove it. */}}
+
+
   <div class="container">
     <span class="text-muted">CarMarket Inc. 2022</span>
   </div>
+
 </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-OERcA2EqjJCMA+/3y+gxIOqMEjwtxJY7qPCqsdltbNJuaOe923+mo//f6V8Qbsw3" crossorigin="anonymous"></script>
 
+    {{/* console.log(Intl.DateTimeFormat().resolvedOptions().timeZone) */}}
+    {{/* <script>
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    xhr.setRequestHeader("TZ", tz)
+
+    </script> */}}
 </body>
 </html>
