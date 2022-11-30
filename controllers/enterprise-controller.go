@@ -10,6 +10,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
@@ -158,6 +159,9 @@ func (c *enterpriseController) ManagerSaveVehicle(ctx *gin.Context) (err error) 
 	if err != nil {
 		return err
 	}
+
+	vehicle.CommissioningDate = time.Now().UTC()
+	fmt.Println("THIS IS THIS TIIIIMEEE", vehicle.CommissioningDate)
 
 	if c.authManagerEntUpdates(ctx, int(vehicle.EnterpriseID)) == true {
 		err = c.service.SaveVehicle(vehicle)

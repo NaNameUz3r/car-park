@@ -10,6 +10,7 @@ type Enterprise struct {
 	EnterpriseName  string    `json:"enterprise_name"`
 	HeadquarterCity string    `json:"headquarter_city"`
 	Vehicles        []Vehicle `gorm:"foreignKey:EnterpriseID" json:"-"`
+	TimeZone        string    `json:"iana_timezone" validate:"timezone"`
 }
 
 type Driver struct {

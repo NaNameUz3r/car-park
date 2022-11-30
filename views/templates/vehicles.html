@@ -14,6 +14,7 @@
             <th scope="col">Manufactured Year</th>
             <th scope="col">$ Price</th>
             <th scope="col">Brand</th>
+            <th scope="col">Comission Date</th>
             <th scope="col"></th>
             <th scope="col"></th>
           </tr>
@@ -27,6 +28,13 @@
             <td>{{.ManufacturedYear}}</td>
             <td>{{.Price}}</td>
             <td>{{.CarModel.Brand}}</td>
+            <td>
+              <script>
+                var localdate = new Date({{.CommissioningDate}}).toLocaleTimeString('ru-Ru', { day:"numeric", year:"numeric", month:"short", time:"numeric"})
+                document.write(localdate)
+              </script>
+            </td>
+
             <td>
               <a class="btn btn-primary" href="/view/manager/{{$.managerID}}/vehicles/edit/{{.ID}}" role="button">Edit</a>
             </td>

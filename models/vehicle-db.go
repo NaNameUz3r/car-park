@@ -6,6 +6,7 @@ import (
 	// "github.com/jinzhu/gorm"
 	// _ "github.com/jinzhu/gorm/dialects/postgres"
 	"fmt"
+	"time"
 
 	"github.com/lib/pq"
 	"golang.org/x/exp/slices"
@@ -43,12 +44,16 @@ type dbConn struct {
 }
 
 //TODO: Make it parameterizable and secure.
-var connectionString = "host=localhost port=5432 user=admin password=qwerty dbname=car_park_dev sslmode=disable"
+var connectionString = "host=localhost port=5432 user=admin password=qwerty dbname=car_park_dev sslmode=disable TimeZone=UTC"
 
 func NewVehicleDB() VehicleDB {
 	db, err := gorm.Open(postgres.Open(connectionString), &gorm.Config{
 		Logger:               logger.Default.LogMode(logger.Info),
 		FullSaveAssociations: true,
+		NowFunc: func() time.Time {
+			utc, _ := time.LoadLocation("UTC")
+			return time.Now().In(utc)
+		},
 	})
 	if err != nil {
 		panic("Failed to connect to database")
@@ -129,7 +134,7 @@ func (db *dbConn) ManagerFindAllVehicles(accessibleEnterprises pq.Int64Array, pa
 	if preload {
 		db.connection.Preload("CarModel").Find(&vehicles)
 	} else {
-		queryBuilder.Model(&Vehicle{}).Where("enterprise_id IN ?", array).Select("id", "enterprise_id", "description", "price", "mileage", "manufactured_year", "car_model_id").Find(&vehicles)
+		queryBuilder.Model(&Vehicle{}).Where("enterprise_id IN ?", array).Select("id", "enterprise_id", "description", "price", "mileage", "manufactured_year", "car_model_id", "commissioning_date").Find(&vehicles)
 		// db.connection.Preload("Drivers").Where("enterprise_id IN ?", array).Select("id", "enterprise_id", "description", "price", "mileage", "manufactured_year", "car_model_id").Find(&vehicles)
 		// db.connection.Model(&vehicle).Association("Drivers").Find(&vehicle)
 	}
