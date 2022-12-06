@@ -50,6 +50,7 @@ func main() {
 	// doesnot working  ¯\_(ツ)_/¯
 	// vehicleDB.DestructiveReset()
 	vehicleDB.AutoMigrate()
+	// vehicleDB.LoadFixturesGeotracks(25170)
 
 	server.Static("/css", "./views/css")
 	server.StaticFile("/logo.svg", "./views/assets/logo-1-white.svg")
@@ -164,46 +165,99 @@ func main() {
 			}
 
 		})
+
+		//GEOPOINTS_METHODS
+		apiRoutes.GET("/manager/:id/vehicle/:vehicle_id/routes_xy", func(ctx *gin.Context) {
+			err := enterpriseController.AuthManager(ctx)
+			if err != nil {
+				ctx.JSON(401, "Unauthorized")
+			} else {
+				geoJSON, err := enterpriseController.ManagerGetVehicleRoutesGeoJSON(ctx)
+				if err != nil {
+					ctx.JSON(http.StatusInternalServerError, gin.H{
+						"ERROR": err.Error()})
+				} else {
+					ctx.JSON(http.StatusOK, geoJSON)
+				}
+			}
+
+		})
+
+		apiRoutes.GET("/manager/:id/vehicle/:vehicle_id/routes_geopoints", func(ctx *gin.Context) {
+			err := enterpriseController.AuthManager(ctx)
+			if err != nil {
+				ctx.JSON(401, "Unauthorized")
+			} else {
+				geoPoints, err := enterpriseController.ManagerGetVehicleRoutesGeopoints(ctx)
+				if err != nil {
+					ctx.JSON(http.StatusInternalServerError, gin.H{
+						"ERROR": err.Error()})
+				} else {
+					ctx.JSON(http.StatusOK, geoPoints)
+				}
+			}
+
+		})
+
+		apiRoutes.POST("/manager/:id/vehicle/:vehicle_id/checkpoint", func(ctx *gin.Context) {
+			err := enterpriseController.AuthManager(ctx)
+			if err != nil {
+				fmt.Println("FUCKING BASIC AUTH")
+				ctx.JSON(401, "Unauthorized")
+			} else {
+				err := enterpriseController.ManagerSaveVehicleGeoPoint(ctx)
+				if err != nil {
+					ctx.JSON(http.StatusInternalServerError, gin.H{
+						"ERROR": err.Error()})
+				} else {
+					ctx.JSON(http.StatusOK, "GeoPoint added OK.")
+				}
+			}
+
+		})
+
 		// POST /api/vehicles creates new Vehicle object with nested
 		// CarModle in it.
-		apiRoutes.POST("/vehicles", func(ctx *gin.Context) {
-			err := vehicleController.SaveVehicle(ctx)
-			if err != nil {
-				ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			} else if ctx.ContentType() == "application/json" {
-				ctx.JSON(http.StatusOK, gin.H{"message": "New Vehicle added OK"})
-			} else {
-				ctx.Redirect(http.StatusFound, "/view/vehicles")
-			}
 
-		})
+		// TODO: НАУЧИТЬСЯ ПРОГРАММИРОВАТЬСЯ
+		// apiRoutes.POST("/vehicles", func(ctx *gin.Context) {
+		// 	err := vehicleController.SaveVehicle(ctx)
+		// 	if err != nil {
+		// 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		// 	} else if ctx.ContentType() == "application/json" {
+		// 		ctx.JSON(http.StatusOK, gin.H{"message": "New Vehicle added OK"})
+		// 	} else {
+		// 		ctx.Redirect(http.StatusFound, "/view/vehicles")
+		// 	}
 
-		// POST /api/update/vehicle/:id updates existing Vehicle with nested
-		// CarModel by vehicle ID. Can update only CarModel.
-		apiRoutes.POST("/update/vehicle/:id", middlewares.CSRF(), func(ctx *gin.Context) {
-			err := vehicleController.UpdateVehicle(ctx)
-			if err != nil {
-				ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			} else if ctx.ContentType() == "application/json" {
-				ctx.JSON(http.StatusOK, gin.H{"message": "Vehicle updated OK"})
-			} else {
-				ctx.Redirect(http.StatusFound, "/view/vehicles")
-			}
+		// })
 
-		})
+		// // POST /api/update/vehicle/:id updates existing Vehicle with nested
+		// // CarModel by vehicle ID. Can update only CarModel.
+		// apiRoutes.POST("/update/vehicle/:id", middlewares.CSRF(), func(ctx *gin.Context) {
+		// 	err := vehicleController.UpdateVehicle(ctx)
+		// 	if err != nil {
+		// 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		// 	} else if ctx.ContentType() == "application/json" {
+		// 		ctx.JSON(http.StatusOK, gin.H{"message": "Vehicle updated OK"})
+		// 	} else {
+		// 		ctx.Redirect(http.StatusFound, "/view/vehicles")
+		// 	}
 
-		// POST /api/delete/vehicle/:id soft deletes Vehicle with nested CarModel by vehicle ID.
-		apiRoutes.POST("/delete/vehicle/:id", func(ctx *gin.Context) {
-			err := vehicleController.DeleteVehicle(ctx)
-			if err != nil {
-				ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			} else if ctx.ContentType() == "application/json" || ctx.ContentType() == "" {
-				ctx.JSON(http.StatusOK, gin.H{"message": "Vehicle deleted OK"})
-			} else {
-				ctx.Redirect(http.StatusFound, "/view/vehicles")
-			}
+		// })
 
-		})
+		// // POST /api/delete/vehicle/:id soft deletes Vehicle with nested CarModel by vehicle ID.
+		// apiRoutes.POST("/delete/vehicle/:id", func(ctx *gin.Context) {
+		// 	err := vehicleController.DeleteVehicle(ctx)
+		// 	if err != nil {
+		// 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		// 	} else if ctx.ContentType() == "application/json" || ctx.ContentType() == "" {
+		// 		ctx.JSON(http.StatusOK, gin.H{"message": "Vehicle deleted OK"})
+		// 	} else {
+		// 		ctx.Redirect(http.StatusFound, "/view/vehicles")
+		// 	}
+
+		// })
 
 		apiRoutes.POST("/save/enterprises", func(ctx *gin.Context) {
 			err := enterpriseController.SaveEnterprise(ctx)
@@ -250,4 +304,5 @@ func main() {
 	}
 	// vehicleDB.DestructiveReset()
 	server.Run(":" + port)
+
 }

@@ -1,6 +1,7 @@
 package models
 
 import (
+	"log"
 	"time"
 
 	"github.com/go-playground/validator/v10"
@@ -22,27 +23,27 @@ type Vehicle struct {
 	CarModelID        uint       `json:"carmodel_id" form:"-"`
 	Drivers           []Driver   `json:"-" gorm:"foreignKey:VehicleID"`
 	CommissioningDate time.Time  `json:"comissioning_date" gorm:"time without timezone"`
+	GeoPoints         []GeoPoint
 }
 
-// func (v *Vehicle) AfterFind(tx *gorm.DB) (err error) {
-// 	validate = validator.New()
-// 	loc, _ := time.LoadLocation("UTC")
-// 	v.CommissioningDate = v.CommissioningDate.In(loc)
+func (v *Vehicle) AfterFind(tx *gorm.DB) (err error) {
+	validate = validator.New()
+	loc, _ := time.LoadLocation("UTC")
+	v.CommissioningDate = v.CommissioningDate.In(loc)
 
-// 	var enterprise Enterprise
-// 	tx.First(&enterprise, "id = ?", v.EnterpriseID)
-// 	errTimeZone := validate.Struct(enterprise)
-// 	if errTimeZone == nil && enterprise.TimeZone != "" {
-// 		locEnt, _ := time.LoadLocation(enterprise.TimeZone)
-// 		v.CommissioningDate = v.CommissioningDate.In(locEnt)
-// 	} else if errTimeZone != nil {
+	var enterprise Enterprise
+	tx.First(&enterprise, "id = ?", v.EnterpriseID)
+	errTimeZone := validate.Struct(enterprise)
+	if errTimeZone == nil && enterprise.TimeZone != "" {
+		locEnt, _ := time.LoadLocation(enterprise.TimeZone)
+		v.CommissioningDate = v.CommissioningDate.In(locEnt)
+	} else if errTimeZone != nil {
 
-// 		log.Println("WARNING BROKEN TIMEZONE ", err)
-// 	}
+		log.Println("WARNING BROKEN TIMEZONE ", err)
+	}
 
-// 	fmt.Println("OLOLOL\n BLYAD\n RABOTATET NAHUI!\n", enterprise.TimeZone)
-// 	return
-// }
+	return
+}
 
 func isDateValue(stringDate string) bool {
 	_, err := time.Parse("01/02/2006", stringDate)

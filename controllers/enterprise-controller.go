@@ -37,12 +37,18 @@ type EnterpriseController interface {
 	ManagerUpdateVehicle(ctx *gin.Context) error
 	ManagerDeleteVehicle(ctx *gin.Context) error
 
+	ManagerGetVehicleRoutesGeoJSON(ctx *gin.Context) (string, error)
+	ManagerGetVehicleRoutesGeopoints(ctx *gin.Context) ([]models.GeoPoint, error)
+	ManagerSaveVehicleGeoPoint(ctx *gin.Context) error
+
 	AuthManager(ctx *gin.Context) error
 }
 
 type enterpriseController struct {
 	service models.EnterpriseService
 }
+
+var timeLayout string = "2006-01-02 15:04:05"
 
 func NewEnterpriseController(svc models.EnterpriseService) EnterpriseController {
 	validate = validator.New()
@@ -209,7 +215,7 @@ func (c *enterpriseController) ManagerDeleteVehicle(ctx *gin.Context) error {
 
 	vehicle.ID = uint(id)
 
-	if c.authManagerVehicleUpdates(ctx, int(vehicle.ID)) != true {
+	if c.authManagerVehicleUpdates(ctx, vehicle.ID) != true {
 		err = fmt.Errorf("Wrong Vehicle ID")
 		return err
 	} else {
@@ -305,6 +311,72 @@ func (c *enterpriseController) ManagerShowEditVehicle(ctx *gin.Context) {
 	ctx.HTML(http.StatusOK, "edit-vehicle.html", data)
 }
 
+func (c *enterpriseController) ManagerGetVehicleRoutesGeoJSON(ctx *gin.Context) (string, error) {
+	vehicleID, _ := strconv.ParseUint(ctx.Param("vehicle_id"), 0, 0)
+
+	notBefore, notAfter, err := querytimeToStrings(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	if !c.authManagerVehicleUpdates(ctx, uint(vehicleID)) {
+		return "", fmt.Errorf("Wrong vehicle ID")
+	} else {
+		geoJSON, err := c.service.ManagerGetVehicleRoutesGeoJSON(uint(vehicleID), notBefore, notAfter)
+		if err != nil {
+			return "", err
+		} else {
+			return geoJSON, nil
+		}
+	}
+
+}
+
+func (c *enterpriseController) ManagerGetVehicleRoutesGeopoints(ctx *gin.Context) ([]models.GeoPoint, error) {
+	var geoPoints []models.GeoPoint
+	var err error
+	vehicleID, _ := strconv.ParseUint(ctx.Param("vehicle_id"), 0, 0)
+	notBefore, notAfter, err := querytimeToStrings(ctx)
+	if err != nil {
+		return geoPoints, err
+	}
+
+	if !c.authManagerVehicleUpdates(ctx, uint(vehicleID)) {
+		return geoPoints, fmt.Errorf("Wrong vehicle ID")
+	} else {
+		geoPoints, err = c.service.ManagerGetVehicleRoutesGeopoints(uint(vehicleID), notBefore, notAfter)
+		if err != nil {
+			return geoPoints, err
+		} else {
+			return geoPoints, nil
+		}
+	}
+}
+
+func (c *enterpriseController) ManagerSaveVehicleGeoPoint(ctx *gin.Context) error {
+	var geoPoint models.GeoPoint
+	err := ctx.ShouldBind(&geoPoint)
+	if err != nil {
+		if strings.Contains(err.Error(), "parsing") {
+			log.Println(err)
+			return fmt.Errorf("Invalid track_time format. Please refer to RFC3339")
+
+		} else {
+			return err
+		}
+	}
+
+	err = validate.Struct(geoPoint)
+	if err != nil {
+		return err
+	}
+
+	vehicleID, _ := strconv.ParseUint(ctx.Param("vehicle_id"), 0, 0)
+	geoPoint.VehicleID = uint(vehicleID)
+	err = c.service.ManagerSaveGeoPoint(geoPoint)
+	return err
+}
+
 func (c *enterpriseController) AuthManager(ctx *gin.Context) error {
 	managerIdFromURL, _ := strconv.ParseUint(ctx.Param("id"), 0, 0)
 
@@ -359,7 +431,7 @@ func (c *enterpriseController) authManagerEntUpdates(ctx *gin.Context, enterpris
 
 }
 
-func (c *enterpriseController) authManagerVehicleUpdates(ctx *gin.Context, vehicleID int) bool {
+func (c *enterpriseController) authManagerVehicleUpdates(ctx *gin.Context, vehicleID uint) bool {
 	access := false
 
 	err := c.AuthManager(ctx)
@@ -376,4 +448,49 @@ func (c *enterpriseController) authManagerVehicleUpdates(ctx *gin.Context, vehic
 
 	access = contains(array, int64(vehicle.EnterpriseID))
 	return access
+}
+
+func querytimeToStrings(ctx *gin.Context) (string, string, error) {
+
+	notBefore := ""
+	notAfter := ""
+
+	urlQuery := ctx.Request.URL.Query()
+	for key, value := range urlQuery {
+		queryValue := value[len(value)-1]
+		switch key {
+		case "notBefore":
+			notBefore = queryValue
+			break
+		case "notAfter":
+			notAfter = queryValue
+			break
+		}
+	}
+
+	fmt.Println("BEFORE_PARSING:", notBefore, notAfter)
+
+	// RFC3339local := "2006-01-02T15:04:05Z"
+	utcLoc, _ := time.LoadLocation("UTC")
+	if notBefore != "" {
+		timeNotBefore, err1 := time.ParseInLocation(time.RFC3339, notBefore, utcLoc)
+		if err1 != nil {
+			return "", "", fmt.Errorf("notBefore invalid timestamp. Please refer to RFC3339")
+		}
+		timeNotBefore = timeNotBefore.In(utcLoc)
+		notBefore = timeNotBefore.Format("2006-01-02 15:04:05")
+	}
+
+	if notAfter != "" {
+		timeNotAfter, err2 := time.ParseInLocation(time.RFC3339, notAfter, utcLoc)
+		if err2 != nil {
+			return "", "", fmt.Errorf("notAfter invalid timestamp. Please refer to RFC3339")
+		}
+		timeNotAfter = timeNotAfter.In(utcLoc)
+		notAfter = timeNotAfter.Format("2006-01-02 15:04:05")
+	}
+
+	fmt.Println("AFTER_PARSING:", notBefore, notAfter)
+	return notBefore, notAfter, nil
+
 }

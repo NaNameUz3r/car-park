@@ -6,6 +6,7 @@ import (
 	// "github.com/jinzhu/gorm"
 	// _ "github.com/jinzhu/gorm/dialects/postgres"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/lib/pq"
@@ -35,8 +36,14 @@ type VehicleDB interface {
 	ManagerFindAllVehicles(accessibleEnterprises pq.Int64Array, pagination Pagination, preload bool) []Vehicle
 	ManagerFindAllDrivers(accessibleEnterprises pq.Int64Array) []Driver
 
+	ManagerGetVehicleRoutesGeoJSON(vehicleID uint, notBefore, notAfter string) (string, error)
+	ManagerGetVehicleRoutesGeopoints(VehicleID uint, notBefore, notAfter string) ([]GeoPoint, error)
+	ManagerSaveGeoPoint(geoPoint GeoPoint) error
+
 	FindAllEnterprises() []Enterprise
 	FindAllDrivers() []Driver
+
+	LoadFixturesGeotracks(vehicleID uint)
 }
 
 type dbConn struct {
@@ -214,9 +221,57 @@ func (db *dbConn) SaveManager(m Manager) error {
 	return db.connection.Create(&m).Error
 }
 
+func (db *dbConn) ManagerGetVehicleRoutesGeoJSON(vehicleID uint, notBefore string, notAfter string) (string, error) {
+	var geoJson string
+
+	baseQuery := "SELECT ST_AsGeoJSON(ST_MakeLine((ARRAY(SELECT ST_MakePoint(g.geo_x, g.geo_y) FROM geo_points As g where vehicle_id = ? "
+
+	if notBefore != "" {
+		baseQuery = baseQuery + "AND track_time >= '" + notBefore + "' "
+	}
+
+	if notAfter != "" {
+		baseQuery = baseQuery + "AND track_time < '" + notAfter + "'"
+	}
+
+	baseQuery = baseQuery + "ORDER BY track_time))))"
+
+	result := db.connection.Raw(
+		baseQuery, vehicleID)
+
+	if result.Error != nil {
+		return "", result.Error
+	} else {
+		result.Scan(&geoJson)
+		geoJsonStrip := strings.ReplaceAll(geoJson, "\"", "'")
+		return geoJsonStrip, nil
+	}
+}
+
+func (db *dbConn) ManagerGetVehicleRoutesGeopoints(VehicleID uint, notBefore string, notAfter string) ([]GeoPoint, error) {
+	var geoPoints []GeoPoint
+
+	result := db.connection.Order("track_time asc").Where("vehicle_id = ?", VehicleID).Where("track_time >= ?", notBefore).Where("track_time < ?", notAfter).Find(&geoPoints)
+
+	// baseQuery := "SELECT * FROM geo_points WHERE vehicle_id = " + strconv.Itoa(int(VehicleID))
+
+	// result := db.connection.Raw(baseQuery)
+	// result.Scan(&geoPoints)
+
+	return geoPoints, result.Error
+}
+
+func (db *dbConn) ManagerSaveGeoPoint(geoPoint GeoPoint) error {
+	return db.connection.Create(&geoPoint).Error
+}
+
+func (db *dbConn) LoadFixturesGeotracks(vehicleID uint) {
+	LoadFixtureGeotracks(db.connection, vehicleID)
+}
+
 func (db *dbConn) AutoMigrate() {
 	db.connection.AutoMigrate(&Enterprise{}, &Manager{})
-	db.connection.AutoMigrate(&CarModel{}, &Vehicle{}, &Driver{})
+	db.connection.AutoMigrate(&CarModel{}, &Vehicle{}, &Driver{}, &GeoPoint{})
 }
 
 // DROPDATABASE!

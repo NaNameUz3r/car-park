@@ -50,6 +50,10 @@ type EnterpriseService interface {
 
 	ManagerByID(id uint) Manager
 	ManagerFindAllVehicles(accessibleEnterprises pq.Int64Array, paginations Pagination, preload bool) []Vehicle
+	ManagerGetVehicleRoutesGeoJSON(vehicleID uint, notBefore string, notAfter string) (string, error)
+	ManagerGetVehicleRoutesGeopoints(vehicleID uint, notBefore string, notAfter string) ([]GeoPoint, error)
+	ManagerSaveGeoPoint(geoPoint GeoPoint) error
+
 	ManagerFindAllDrivers(accessibleEnterprises pq.Int64Array) []Driver
 	ManagerByCreds(username, password string) Manager
 }
@@ -121,4 +125,16 @@ func (service *enterpriseSerivce) ManagerFindAllVehicles(accessibleEnterprises p
 
 func (service *enterpriseSerivce) ManagerFindAllDrivers(accessibleEnterprises pq.Int64Array) []Driver {
 	return service.vehicleDB.ManagerFindAllDrivers(accessibleEnterprises)
+}
+
+func (service *enterpriseSerivce) ManagerGetVehicleRoutesGeoJSON(vehicleID uint, notBefore string, notAfter string) (string, error) {
+	return service.vehicleDB.ManagerGetVehicleRoutesGeoJSON(vehicleID, notBefore, notAfter)
+}
+
+func (service *enterpriseSerivce) ManagerGetVehicleRoutesGeopoints(vehicleID uint, notBefore string, notAfter string) ([]GeoPoint, error) {
+	return service.vehicleDB.ManagerGetVehicleRoutesGeopoints(vehicleID, notBefore, notAfter)
+}
+
+func (service *enterpriseSerivce) ManagerSaveGeoPoint(geoPoint GeoPoint) error {
+	return service.vehicleDB.ManagerSaveGeoPoint(geoPoint)
 }
