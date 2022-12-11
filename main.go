@@ -50,7 +50,7 @@ func main() {
 	// doesnot working  ¯\_(ツ)_/¯
 	// vehicleDB.DestructiveReset()
 	vehicleDB.AutoMigrate()
-	// vehicleDB.LoadFixturesGeotracks(25170)
+	// vehicleDB.LoadFixturesGeotracks(25171)
 
 	server.Static("/css", "./views/css")
 	server.StaticFile("/logo.svg", "./views/assets/logo-1-white.svg")
@@ -167,7 +167,23 @@ func main() {
 		})
 
 		//GEOPOINTS_METHODS
-		apiRoutes.GET("/manager/:id/vehicle/:vehicle_id/routes_xy", func(ctx *gin.Context) {
+		apiRoutes.POST("/manager/:id/vehicle/:vehicle_id/checkpoint", func(ctx *gin.Context) {
+			err := enterpriseController.AuthManager(ctx)
+			if err != nil {
+				ctx.JSON(401, "Unauthorized")
+			} else {
+				err := enterpriseController.ManagerSaveVehicleGeoPoint(ctx)
+				if err != nil {
+					ctx.JSON(http.StatusInternalServerError, gin.H{
+						"ERROR": err.Error()})
+				} else {
+					ctx.JSON(http.StatusOK, "GeoPoint added OK.")
+				}
+			}
+
+		})
+
+		apiRoutes.GET("/manager/:id/vehicle/:vehicle_id/routes_geojson", func(ctx *gin.Context) {
 			err := enterpriseController.AuthManager(ctx)
 			if err != nil {
 				ctx.JSON(401, "Unauthorized")
@@ -199,18 +215,82 @@ func main() {
 
 		})
 
-		apiRoutes.POST("/manager/:id/vehicle/:vehicle_id/checkpoint", func(ctx *gin.Context) {
+		apiRoutes.GET("/manager/:id/vehicle/:vehicle_id/rides_geojson", func(ctx *gin.Context) {
 			err := enterpriseController.AuthManager(ctx)
 			if err != nil {
-				fmt.Println("FUCKING BASIC AUTH")
 				ctx.JSON(401, "Unauthorized")
 			} else {
-				err := enterpriseController.ManagerSaveVehicleGeoPoint(ctx)
+				rides, err := enterpriseController.ManagerVehicleRides(ctx, true)
 				if err != nil {
 					ctx.JSON(http.StatusInternalServerError, gin.H{
 						"ERROR": err.Error()})
 				} else {
-					ctx.JSON(http.StatusOK, "GeoPoint added OK.")
+					ctx.JSON(http.StatusOK, rides)
+				}
+			}
+
+		})
+
+		apiRoutes.GET("/manager/:id/vehicle/:vehicle_id/rides_geopoints", func(ctx *gin.Context) {
+			err := enterpriseController.AuthManager(ctx)
+			if err != nil {
+				ctx.JSON(401, "Unauthorized")
+			} else {
+				rides, err := enterpriseController.ManagerVehicleRides(ctx, false)
+				if err != nil {
+					ctx.JSON(http.StatusInternalServerError, gin.H{
+						"ERROR": err.Error()})
+				} else {
+					ctx.JSON(http.StatusOK, rides)
+				}
+			}
+
+		})
+
+		apiRoutes.GET("/manager/:id/vehicle/:vehicle_id/rides_fold_tracks_geojson", func(ctx *gin.Context) {
+			err := enterpriseController.AuthManager(ctx)
+			if err != nil {
+				ctx.JSON(401, "Unauthorized")
+			} else {
+				_, geoJson, err := enterpriseController.ManagerVehicleRidesFold(ctx, true)
+				if err != nil {
+					ctx.JSON(http.StatusInternalServerError, gin.H{
+						"ERROR": err.Error()})
+				} else {
+					ctx.JSON(http.StatusOK, geoJson)
+				}
+			}
+
+		})
+
+		apiRoutes.GET("/manager/:id/vehicle/:vehicle_id/rides_fold_tracks_geopoints", func(ctx *gin.Context) {
+			err := enterpriseController.AuthManager(ctx)
+			if err != nil {
+				ctx.JSON(401, "Unauthorized")
+			} else {
+				geoPoints, _, err := enterpriseController.ManagerVehicleRidesFold(ctx, false)
+				if err != nil {
+					ctx.JSON(http.StatusInternalServerError, gin.H{
+						"ERROR": err.Error()})
+				} else {
+					ctx.JSON(http.StatusOK, geoPoints)
+				}
+			}
+
+		})
+
+		apiRoutes.GET("/manager/:id/vehicle/:vehicle_id/rides_human_readable", func(ctx *gin.Context) {
+			err := enterpriseController.AuthManager(ctx)
+			if err != nil {
+				ctx.JSON(401, "Unauthorized")
+			} else {
+				HumanReadableRides, err := enterpriseController.ManagerHumanReadRides(ctx)
+				if err != nil {
+					ctx.JSON(http.StatusInternalServerError, gin.H{
+						"ERROR": err.Error()})
+
+				} else {
+					ctx.JSON(http.StatusOK, HumanReadableRides)
 				}
 			}
 
@@ -259,6 +339,16 @@ func main() {
 
 		// })
 
+		apiRoutes.POST("/save/ride", func(ctx *gin.Context) {
+			err := enterpriseController.SaveRide(ctx)
+			if err != nil {
+				ctx.JSON(http.StatusBadRequest, gin.H{"error:": err.Error()})
+			} else {
+				ctx.JSON(http.StatusOK, gin.H{"message:": "New ride added OK"})
+			}
+
+		})
+
 		apiRoutes.POST("/save/enterprises", func(ctx *gin.Context) {
 			err := enterpriseController.SaveEnterprise(ctx)
 			if err != nil {
@@ -297,7 +387,6 @@ func main() {
 		})
 	}
 
-	fmt.Println(accounts)
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8888"

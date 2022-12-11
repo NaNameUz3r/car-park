@@ -41,6 +41,12 @@ type EnterpriseController interface {
 	ManagerGetVehicleRoutesGeopoints(ctx *gin.Context) ([]models.GeoPoint, error)
 	ManagerSaveVehicleGeoPoint(ctx *gin.Context) error
 
+	SaveRide(ctx *gin.Context) error
+	ManagerVehicleRides(ctx *gin.Context, inGeoJson bool) ([]models.Ride, error)
+	ManagerVehicleRidesFold(ctx *gin.Context, inGeoJsons bool) ([]models.GeoPoint, string, error)
+
+	ManagerHumanReadRides(ctx *gin.Context) ([]models.HumanReadRide, error)
+
 	AuthManager(ctx *gin.Context) error
 }
 
@@ -102,6 +108,26 @@ func (c *enterpriseController) SaveManager(ctx *gin.Context) error {
 	return err
 }
 
+func (c *enterpriseController) SaveRide(ctx *gin.Context) error {
+	var ride models.Ride
+	err := ctx.ShouldBindJSON(&ride)
+	if err != nil {
+		return err
+	}
+
+	err = validate.Struct(ride)
+	if err != nil {
+		return err
+	}
+
+	if !ride.RideStart.Before(ride.RideFinish) {
+		return fmt.Errorf("RideFinish is earlier that RideStart")
+	}
+
+	err = c.service.SaveRide(ride)
+	return err
+}
+
 func (c *enterpriseController) FindAllEnterprises() []models.Enterprise {
 	return c.service.FindAllEnterprises()
 }
@@ -140,7 +166,7 @@ func (c *enterpriseController) ManagerFindAllVehicles(ctx *gin.Context, preload 
 	manager := c.service.ManagerByID(uint(managerId))
 	accessibleEnterprises := manager.AccessibleEnterprises
 
-	pagination := utils.GenPaginationFromRequest(ctx)
+	pagination := models.GenPaginationFromRequest(ctx)
 	vehicles := c.service.ManagerFindAllVehicles(accessibleEnterprises, pagination, preload)
 
 	return vehicles
@@ -235,7 +261,7 @@ func (c *enterpriseController) ManagerShowAllVehicles(ctx *gin.Context) {
 	manager := c.service.ManagerByID(uint(managerId))
 	accessibleEnterprises := manager.AccessibleEnterprises
 
-	pagination := utils.GenPaginationFromRequest(ctx)
+	pagination := models.GenPaginationFromRequest(ctx)
 
 	currentPage := ctx.Request.URL.Query()["page"][0]
 	currentPageInt, _ := strconv.Atoi(currentPage)
@@ -246,7 +272,7 @@ func (c *enterpriseController) ManagerShowAllVehicles(ctx *gin.Context) {
 	fmt.Println(currentPageInt, reflect.TypeOf(currentPageInt))
 
 	vehicles := c.service.ManagerFindAllVehicles(accessibleEnterprises, pagination, false)
-	if len(vehicles) < utils.DEFAULT_PAGINATION_LIMIT {
+	if len(vehicles) < models.DEFAULT_PAGINATION_LIMIT {
 		nextPage = "nonext"
 	} else {
 		nextPage = strings.Replace(ctx.Request.URL.String(), "?page="+currentPage, "?page="+strconv.Itoa(currentPageInt+1), 1)
@@ -314,7 +340,7 @@ func (c *enterpriseController) ManagerShowEditVehicle(ctx *gin.Context) {
 func (c *enterpriseController) ManagerGetVehicleRoutesGeoJSON(ctx *gin.Context) (string, error) {
 	vehicleID, _ := strconv.ParseUint(ctx.Param("vehicle_id"), 0, 0)
 
-	notBefore, notAfter, err := querytimeToStrings(ctx)
+	notBefore, notAfter, err := utils.UrlQTimeStampsToUTCStrings(ctx)
 	if err != nil {
 		return "", err
 	}
@@ -336,7 +362,7 @@ func (c *enterpriseController) ManagerGetVehicleRoutesGeopoints(ctx *gin.Context
 	var geoPoints []models.GeoPoint
 	var err error
 	vehicleID, _ := strconv.ParseUint(ctx.Param("vehicle_id"), 0, 0)
-	notBefore, notAfter, err := querytimeToStrings(ctx)
+	notBefore, notAfter, err := utils.UrlQTimeStampsToUTCStrings(ctx)
 	if err != nil {
 		return geoPoints, err
 	}
@@ -375,6 +401,97 @@ func (c *enterpriseController) ManagerSaveVehicleGeoPoint(ctx *gin.Context) erro
 	geoPoint.VehicleID = uint(vehicleID)
 	err = c.service.ManagerSaveGeoPoint(geoPoint)
 	return err
+}
+
+func (c *enterpriseController) ManagerVehicleRides(ctx *gin.Context, inGeoJsons bool) ([]models.Ride, error) {
+	var rides []models.Ride
+	vehicleID, _ := strconv.ParseUint(ctx.Param("vehicle_id"), 0, 0)
+	notBefore, notAfter, err := utils.UrlQTimeStampsToUTCStrings(ctx)
+	if err != nil {
+		return rides, err
+	}
+
+	if !c.authManagerVehicleUpdates(ctx, uint(vehicleID)) {
+		return rides, fmt.Errorf("Wrong vehicle ID")
+	} else {
+		rides, err = c.service.ManagerGetVehicleRides(uint(vehicleID), notBefore, notAfter, inGeoJsons)
+		if err != nil {
+			return rides, err
+		} else {
+			return rides, nil
+		}
+	}
+
+}
+
+func (c *enterpriseController) ManagerVehicleRidesFold(ctx *gin.Context, inGeoJsons bool) (GeoPoints []models.GeoPoint, GeoJson string, err error) {
+	var geoPoints []models.GeoPoint
+	var rides []models.Ride
+	var geoJson string
+	vehicleID, _ := strconv.ParseUint(ctx.Param("vehicle_id"), 0, 0)
+	notBefore, notAfter, err := utils.UrlQTimeStampsToUTCStrings(ctx)
+	if err != nil {
+		return geoPoints, "", err
+	}
+
+	if !c.authManagerVehicleUpdates(ctx, uint(vehicleID)) {
+		return geoPoints, "", fmt.Errorf("Wrong vehicle ID")
+	} else {
+		rides, err = c.service.ManagerGetVehicleRides(uint(vehicleID), notBefore, notAfter, inGeoJsons)
+		if err != nil {
+			return geoPoints, "", err
+		}
+
+		nb := rides[0].RideStart
+		na := rides[len(rides)-1].RideFinish
+
+		notBeforeFold, notAfterFold, err := utils.TimeStampsToUTCStrings(nb, na)
+		if err != nil {
+			return geoPoints, "", err
+		}
+		if inGeoJsons {
+			geoJson, err = c.service.ManagerGetVehicleRoutesGeoJSON(uint(vehicleID), notBeforeFold, notAfterFold)
+			if err != nil {
+
+				return geoPoints, "", err
+			} else {
+				return geoPoints, geoJson, nil
+			}
+		} else {
+			geoPoints, err = c.service.ManagerGetVehicleRoutesGeopoints(uint(vehicleID), notBeforeFold, notAfterFold)
+			if err != nil {
+				return geoPoints, "", err
+			} else {
+				return geoPoints, "", nil
+			}
+		}
+	}
+
+}
+
+func (c *enterpriseController) ManagerHumanReadRides(ctx *gin.Context) ([]models.HumanReadRide, error) {
+	var rides []models.Ride
+	var humanReadableRides []models.HumanReadRide
+	var err error
+
+	rides, err = c.ManagerVehicleRides(ctx, false)
+	if err != nil {
+		return humanReadableRides, err
+	}
+
+	for _, ride := range rides {
+		geoPointsLen := len(ride.GeoPoints)
+		humanReadableRides = append(humanReadableRides, models.HumanReadRide{
+			VehicleID:    ride.VehicleID,
+			RideStart:    ride.RideStart,
+			StartAddress: utils.GeocodeToAddress(ride.GeoPoints[0].GeoY, float64(ride.GeoPoints[0].GeoX)),
+
+			RideFinish:    ride.RideFinish,
+			FinishAddress: utils.GeocodeToAddress(ride.GeoPoints[geoPointsLen-1].GeoY, ride.GeoPoints[geoPointsLen-1].GeoX),
+			RideDuration:  time.Time{}.Add(ride.RideFinish.Sub(ride.RideStart)).Format("15:04:05"),
+		})
+	}
+	return humanReadableRides, err
 }
 
 func (c *enterpriseController) AuthManager(ctx *gin.Context) error {
@@ -448,49 +565,4 @@ func (c *enterpriseController) authManagerVehicleUpdates(ctx *gin.Context, vehic
 
 	access = contains(array, int64(vehicle.EnterpriseID))
 	return access
-}
-
-func querytimeToStrings(ctx *gin.Context) (string, string, error) {
-
-	notBefore := ""
-	notAfter := ""
-
-	urlQuery := ctx.Request.URL.Query()
-	for key, value := range urlQuery {
-		queryValue := value[len(value)-1]
-		switch key {
-		case "notBefore":
-			notBefore = queryValue
-			break
-		case "notAfter":
-			notAfter = queryValue
-			break
-		}
-	}
-
-	fmt.Println("BEFORE_PARSING:", notBefore, notAfter)
-
-	// RFC3339local := "2006-01-02T15:04:05Z"
-	utcLoc, _ := time.LoadLocation("UTC")
-	if notBefore != "" {
-		timeNotBefore, err1 := time.ParseInLocation(time.RFC3339, notBefore, utcLoc)
-		if err1 != nil {
-			return "", "", fmt.Errorf("notBefore invalid timestamp. Please refer to RFC3339")
-		}
-		timeNotBefore = timeNotBefore.In(utcLoc)
-		notBefore = timeNotBefore.Format("2006-01-02 15:04:05")
-	}
-
-	if notAfter != "" {
-		timeNotAfter, err2 := time.ParseInLocation(time.RFC3339, notAfter, utcLoc)
-		if err2 != nil {
-			return "", "", fmt.Errorf("notAfter invalid timestamp. Please refer to RFC3339")
-		}
-		timeNotAfter = timeNotAfter.In(utcLoc)
-		notAfter = timeNotAfter.Format("2006-01-02 15:04:05")
-	}
-
-	fmt.Println("AFTER_PARSING:", notBefore, notAfter)
-	return notBefore, notAfter, nil
-
 }

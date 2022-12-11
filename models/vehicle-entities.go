@@ -24,6 +24,7 @@ type Vehicle struct {
 	Drivers           []Driver   `json:"-" gorm:"foreignKey:VehicleID"`
 	CommissioningDate time.Time  `json:"comissioning_date" gorm:"time without timezone"`
 	GeoPoints         []GeoPoint
+	Rides             []Ride
 }
 
 func (v *Vehicle) AfterFind(tx *gorm.DB) (err error) {

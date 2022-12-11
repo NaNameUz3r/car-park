@@ -54,6 +54,9 @@ type EnterpriseService interface {
 	ManagerGetVehicleRoutesGeopoints(vehicleID uint, notBefore string, notAfter string) ([]GeoPoint, error)
 	ManagerSaveGeoPoint(geoPoint GeoPoint) error
 
+	SaveRide(r Ride) error
+	ManagerGetVehicleRides(vehicleID uint, notBefore string, notAfter string, inGeoJsons bool) ([]Ride, error)
+
 	ManagerFindAllDrivers(accessibleEnterprises pq.Int64Array) []Driver
 	ManagerByCreds(username, password string) Manager
 }
@@ -78,6 +81,9 @@ func (service *enterpriseSerivce) SaveEnterprise(e Enterprise) error {
 
 func (service *enterpriseSerivce) SaveDriver(d Driver) error {
 	return service.vehicleDB.SaveDriver(d)
+}
+func (service *enterpriseSerivce) SaveRide(r Ride) error {
+	return service.vehicleDB.SaveRide(r)
 }
 
 func (service *enterpriseSerivce) SaveManager(m Manager) error {
@@ -137,4 +143,8 @@ func (service *enterpriseSerivce) ManagerGetVehicleRoutesGeopoints(vehicleID uin
 
 func (service *enterpriseSerivce) ManagerSaveGeoPoint(geoPoint GeoPoint) error {
 	return service.vehicleDB.ManagerSaveGeoPoint(geoPoint)
+}
+
+func (service *enterpriseSerivce) ManagerGetVehicleRides(vehicleID uint, notBefore string, notAfter string, inGeoJsons bool) ([]Ride, error) {
+	return service.vehicleDB.ManagerGetVehicleRides(vehicleID, notBefore, notAfter, inGeoJsons)
 }
