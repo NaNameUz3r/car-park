@@ -56,10 +56,7 @@ func main() {
 	server.StaticFile("/logo.svg", "./views/assets/logo-1-white.svg")
 	server.LoadHTMLGlob("./views/templates/*.html")
 
-	// server.GET("/", func(ctx *gin.Context) {
-	// 	ctx.HTML(http.StatusOK, "index.html", gin.H{})
-	// })
-
+	server.GET("/home", enterpriseController.ManagerHome)
 	server.GET("/", enterpriseController.RedirectManager)
 
 	server.NoRoute(func(ctx *gin.Context) {
@@ -78,8 +75,11 @@ func main() {
 	viewRoutes := server.Group("/view").Use(middlewares.CSRF())
 	{
 		viewRoutes.GET("/manager/:id/vehicles/", enterpriseController.ManagerShowAllVehicles)
+		viewRoutes.GET("/manager/:id/enterprises/", enterpriseController.ManagerShowAllEnterprises)
 		viewRoutes.GET("/manager/:id/vehicle/create", enterpriseController.ManagerShowCreateVehicle)
 		viewRoutes.GET("/manager/:id/vehicles/edit/:vehicle_id", enterpriseController.ManagerShowEditVehicle)
+		viewRoutes.GET("/manager/:id/vehicles/:vehicle_id/rides", enterpriseController.ManagerShowVehicleRides)
+		viewRoutes.GET("/view/manager/:id/vehicles/:vehicle_id/ride/:ride_id/drawroute", enterpriseController.ManagerShowRideRoute)
 		viewRoutes.GET("/carmodels", vehicleController.ShowAllCarModels)
 	}
 	// TODO: Move "view" CRUD routes from /api to view group for applying CSRF for all of them.
@@ -87,6 +87,16 @@ func main() {
 	// TODO: Damn boah, this mess needs to be really reorganized...
 	apiRoutes := server.Group("/api")
 	{
+
+		apiRoutes.GET("/manager/:id/enterprise/set/:enterprise_id", func(ctx *gin.Context) {
+			err := enterpriseController.AuthManager(ctx)
+			if err != nil {
+				ctx.JSON(401, "Unauthorized")
+			} else {
+				enterpriseController.ManagerSetEnterprise(ctx)
+			}
+
+		})
 
 		// ID here is Manager id
 		apiRoutes.GET("/manager/:id/vehicles/", func(ctx *gin.Context) {
@@ -378,9 +388,9 @@ func main() {
 			}
 		})
 
-		apiRoutes.GET("/enterprises", func(ctx *gin.Context) {
-			ctx.JSON(http.StatusOK, enterpriseController.FindAllEnterprises())
-		})
+		// apiRoutes.GET("/enterprises", func(ctx *gin.Context) {
+		// 	ctx.JSON(http.StatusOK, enterpriseController.FindAllEnterprises())
+		// })
 
 		apiRoutes.GET("/drivers", func(ctx *gin.Context) {
 			ctx.JSON(http.StatusOK, enterpriseController.FindAllDrivers())

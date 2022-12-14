@@ -44,7 +44,7 @@ type EnterpriseService interface {
 
 	ManagerVehicleByID(id uint) Vehicle
 
-	FindAllEnterprises() []Enterprise
+	FindAllEnterprisesByIDs(enterpriseIDs pq.Int64Array) []Enterprise
 	FindAllDrivers() []Driver
 	FindAllManagers() []Manager
 
@@ -106,8 +106,8 @@ func (service *enterpriseSerivce) VehicleByID(id uint) Vehicle {
 	return service.vehicleDB.VehicleByID(id)
 }
 
-func (service *enterpriseSerivce) FindAllEnterprises() []Enterprise {
-	return service.vehicleDB.FindAllEnterprises()
+func (service *enterpriseSerivce) FindAllEnterprisesByIDs(enterprisesIDs pq.Int64Array) []Enterprise {
+	return service.vehicleDB.FindAllEnterprisesByIDs(enterprisesIDs)
 }
 
 func (service *enterpriseSerivce) FindAllDrivers() []Driver {

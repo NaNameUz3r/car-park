@@ -81,6 +81,7 @@ func (r *Ride) AfterFind(tx *gorm.DB) (err error) {
 
 type HumanReadRide struct {
 	VehicleID uint `json:"vehicle_id"`
+	RideID    uint `json:"ride_id"`
 
 	RideStart    time.Time `json:"ride_start_time"`
 	StartAddress string    `json:"start_address"`

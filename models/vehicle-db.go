@@ -44,7 +44,7 @@ type VehicleDB interface {
 	SaveRide(r Ride) error
 	ManagerGetVehicleRides(vehicleID uint, notBefore string, notAfter string, inGeoJsons bool) ([]Ride, error)
 
-	FindAllEnterprises() []Enterprise
+	FindAllEnterprisesByIDs(enterprisesIDs pq.Int64Array) []Enterprise
 	FindAllDrivers() []Driver
 
 	LoadFixturesGeotracks(vehicleID uint)
@@ -158,9 +158,12 @@ func (db *dbConn) FindAllCarModels() []CarModel {
 	return carModels
 }
 
-func (db *dbConn) FindAllEnterprises() []Enterprise {
+func (db *dbConn) FindAllEnterprisesByIDs(enterprisesID pq.Int64Array) []Enterprise {
 	var enterprises []Enterprise
-	db.connection.Select("id", "enterprise_name", "headquarter_city").Find(&enterprises)
+
+	array := make([]int64, len(enterprisesID))
+	copy(array, enterprisesID)
+	db.connection.Where("id IN ?", array).Select("id", "enterprise_name", "headquarter_city", "time_zone").Find(&enterprises)
 	return enterprises
 }
 

@@ -1,0 +1,89 @@
+{{ template "header.html" .}}
+
+{{if .selectdate}}
+
+
+<main class="flex-shrink-0">
+  <div class="container pt-3">
+
+<form action="/view/manager/{{.managerID}}/vehicles/{{.vehicleID}}/rides" method="GET">
+
+  <div class="form-group">
+
+    <label for="dateofbirth">From</label>
+    <input type="date" name="notBefore" id="notBefore">
+
+    <label for="dateofbirth">To</label>
+    <input type="date" name="notAfter" id="notAfter">
+  </div>
+  <button type="submit" class="btn btn-primary mt-3">Show Rides</button>
+</form>
+
+<style>
+[type="date"] {
+  background:#fff url(https://cdn1.iconfinder.com/data/icons/cc_mono_icon_set/blacks/16x16/calendar_2.png)  97% 50% no-repeat ;
+}
+[type="date"]::-webkit-inner-spin-button {
+  display: none;
+}
+[type="date"]::-webkit-calendar-picker-indicator {
+  opacity: 0;
+}
+
+/* custom styles */
+
+input {
+  border: 1px solid #c4c4c4;
+  border-radius: 5px;
+  background-color: #fff;
+  padding: 3px 5px;
+  box-shadow: inset 0 3px 6px rgba(0,0,0,0.1);
+  width: 190px;
+}
+
+</style>
+
+  </div>
+</main>
+
+{{else}}
+<main class="flex-shrink-0">
+  <div class="container pt-3">
+
+    <h3 class="mt-5">Car #{{.vehicleID}} Rides</h3>
+
+      <table class="table mt-5">
+        <thead>
+          <tr>
+            <th scope="col">Ride ID</th>
+            <th scope="col">Ride Start Time</th>
+            <th scope="col">Start Address</th>
+            <th scope="col">Ride Finish Time</th>
+            <th scope="col">Finish Address</th>
+            <th scope="col">Trip duration</th>
+            <th scope="col"></th>
+          </tr>
+        </thead>
+        <tbody class="table-group-divider">
+          {{ range .rides }}
+          <tr>
+            <th>{{.RideID}}</th>
+            <th scope="row">{{.RideStart}}</th>
+            <td>{{.StartAddress}}</td>
+            <td>{{.RideFinish}}</td>
+            <td>{{.FinishAddress}}</td>
+            <td>{{.RideDuration}}</td>
+
+            <td>
+              <a class="btn btn-primary" href="/view/manager/{{$.managerID}}/vehicles/{{$.vehicleID}}/ride/{{.RideID}}/drawroute" role="button">Edit</a>
+            </td>
+
+          </tr>
+          {{ end }}
+        </tbody>
+      </table>
+  </div>
+</main>
+{{end}}
+
+{{ template "footer.html" .}}

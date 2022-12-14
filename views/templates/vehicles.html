@@ -3,7 +3,7 @@
 <main class="flex-shrink-0">
   <div class="container pt-3">
 
-    <h3 class="mt-5">Cars in stock</h3>
+    <h3 class="mt-5">Cars in enterprise #{{.enterpriseID}}</h3>
 
       <table class="table mt-5">
         <thead>
@@ -17,6 +17,7 @@
             <th scope="col">Comission Date</th>
             <th scope="col"></th>
             <th scope="col"></th>
+            <th scope="col"></th>
           </tr>
         </thead>
         <tbody class="table-group-divider">
@@ -28,6 +29,9 @@
             <td>{{.ManufacturedYear}}</td>
             <td>{{.Price}}</td>
             <td>{{.CarModel.Brand}}</td>
+
+
+
             <td>
               <script>
                 var localdate = new Date({{.CommissioningDate}}).toLocaleTimeString('ru-Ru', { day:"numeric", year:"numeric", month:"short", time:"numeric"})
@@ -35,6 +39,9 @@
               </script>
             </td>
 
+            <td>
+              <a class="btn btn-primary" href="/view/manager/{{$.managerID}}/vehicles/{{.ID}}/rides" role="button">Rides</a>
+            </td>
             <td>
               <a class="btn btn-primary" href="/view/manager/{{$.managerID}}/vehicles/edit/{{.ID}}" role="button">Edit</a>
             </td>

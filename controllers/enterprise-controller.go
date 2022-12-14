@@ -16,18 +16,24 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/gorilla/csrf"
 	"github.com/imdario/mergo"
+	"github.com/lib/pq"
 )
 
 type EnterpriseController interface {
 	SaveEnterprise(ctx *gin.Context) error
 	SaveDriver(ctx *gin.Context) error
 	SaveManager(ctx *gin.Context) error
-	FindAllEnterprises() []models.Enterprise
+	FindAllEnterprisesByIDs(enterpriseIDs pq.Int64Array) []models.Enterprise
 	FindAllDrivers() []models.Driver
 	FindAllManagers() []models.Manager
 
+	ManagerHome(ctx *gin.Context)
 	RedirectManager(ctx *gin.Context)
+	ManagerSetEnterprise(ctx *gin.Context)
+
+	ManagerShowAllEnterprises(ctx *gin.Context)
 	ManagerShowAllVehicles(ctx *gin.Context)
+	ManagerShowVehicleRides(ctx *gin.Context)
 	ManagerShowCreateVehicle(ctx *gin.Context)
 	ManagerShowEditVehicle(ctx *gin.Context)
 
@@ -46,6 +52,7 @@ type EnterpriseController interface {
 	ManagerVehicleRidesFold(ctx *gin.Context, inGeoJsons bool) ([]models.GeoPoint, string, error)
 
 	ManagerHumanReadRides(ctx *gin.Context) ([]models.HumanReadRide, error)
+	ManagerShowRideRoute(ctx *gin.Context)
 
 	AuthManager(ctx *gin.Context) error
 }
@@ -128,8 +135,8 @@ func (c *enterpriseController) SaveRide(ctx *gin.Context) error {
 	return err
 }
 
-func (c *enterpriseController) FindAllEnterprises() []models.Enterprise {
-	return c.service.FindAllEnterprises()
+func (c *enterpriseController) FindAllEnterprisesByIDs(enterpriseIDs pq.Int64Array) []models.Enterprise {
+	return c.service.FindAllEnterprisesByIDs(enterpriseIDs)
 }
 
 func (c *enterpriseController) FindAllDrivers() []models.Driver {
@@ -150,15 +157,50 @@ func (c *enterpriseController) RedirectManager(ctx *gin.Context) {
 	credsPair := strings.SplitN(string(payload), ":", 2)
 
 	manager := c.service.ManagerByCreds(credsPair[0], credsPair[1])
-	redirectURL := "/view/manager/" + strconv.FormatUint(uint64(manager.ID), 10) + "/vehicles"
 
-	cookiePage, err := ctx.Cookie("last_page")
+	_, err := ctx.Cookie("enterprise")
 	if err != nil {
-		log.Println("Нету куки, вася!", err)
+		log.Println("Enterprise is not selected")
+		ctx.Redirect(http.StatusFound, "/home")
 	} else {
-		redirectURL = redirectURL + "/?page=" + cookiePage
+		redirectURL := "/view/manager/" + strconv.FormatUint(uint64(manager.ID), 10) + "/vehicles"
+
+		cookiePage, err := ctx.Cookie("last_page")
+		if err != nil {
+			log.Println("Нету куки, вася!", err)
+		} else {
+			redirectURL = redirectURL + "/?page=" + cookiePage
+		}
+		ctx.Redirect(http.StatusFound, redirectURL)
 	}
+}
+
+func (c *enterpriseController) ManagerHome(ctx *gin.Context) {
+	auth := strings.SplitN(ctx.Request.Header.Get("Authorization"), " ", 2)
+	if len(auth) != 2 || auth[0] != "Basic" {
+		ctx.JSON(401, "Unauthorized")
+		return
+	}
+
+	payload, _ := base64.StdEncoding.DecodeString(auth[1])
+	credsPair := strings.SplitN(string(payload), ":", 2)
+
+	manager := c.service.ManagerByCreds(credsPair[0], credsPair[1])
+	redirectURL := "/view/manager/" + strconv.FormatUint(uint64(manager.ID), 10) + "/enterprises"
+
 	ctx.Redirect(http.StatusFound, redirectURL)
+}
+
+func (c *enterpriseController) ManagerSetEnterprise(ctx *gin.Context) {
+	enterpriseId, _ := strconv.ParseUint(ctx.Param("enterprise_id"), 0, 0)
+	enterpriseIdStr := strconv.Itoa(int(enterpriseId))
+
+	fmt.Println(c.authManagerEntUpdates(ctx, int(enterpriseId)))
+	if c.authManagerEntUpdates(ctx, int(enterpriseId)) {
+
+		ctx.SetCookie("enterprise", enterpriseIdStr, 9999999, "/", "localhost", false, true)
+		ctx.Redirect(http.StatusFound, "/")
+	}
 }
 
 func (c *enterpriseController) ManagerFindAllVehicles(ctx *gin.Context, preload bool) []models.Vehicle {
@@ -167,6 +209,7 @@ func (c *enterpriseController) ManagerFindAllVehicles(ctx *gin.Context, preload 
 	accessibleEnterprises := manager.AccessibleEnterprises
 
 	pagination := models.GenPaginationFromRequest(ctx)
+
 	vehicles := c.service.ManagerFindAllVehicles(accessibleEnterprises, pagination, preload)
 
 	return vehicles
@@ -258,8 +301,18 @@ func (c *enterpriseController) ManagerShowAllVehicles(ctx *gin.Context) {
 	}
 
 	managerId, _ := strconv.ParseUint(ctx.Param("id"), 0, 0)
-	manager := c.service.ManagerByID(uint(managerId))
-	accessibleEnterprises := manager.AccessibleEnterprises
+	// manager := c.service.ManagerByID(uint(managerId))
+	// accessibleEnterprises := manager.AccessibleEnterprises
+
+	cookieEnterprise, err := ctx.Cookie("enterprise")
+	if err != nil {
+		ctx.Redirect(http.StatusFound, "/home")
+	}
+	cookietEntID, _ := strconv.Atoi(cookieEnterprise)
+	access := c.authManagerEntUpdates(ctx, cookietEntID)
+	if !access {
+		ctx.Redirect(http.StatusFound, "/home")
+	}
 
 	pagination := models.GenPaginationFromRequest(ctx)
 
@@ -270,7 +323,8 @@ func (c *enterpriseController) ManagerShowAllVehicles(ctx *gin.Context) {
 	fmt.Println(currentPage)
 
 	fmt.Println(currentPageInt, reflect.TypeOf(currentPageInt))
-
+	var accessibleEnterprises pq.Int64Array
+	accessibleEnterprises = append(accessibleEnterprises, int64(cookietEntID))
 	vehicles := c.service.ManagerFindAllVehicles(accessibleEnterprises, pagination, false)
 	if len(vehicles) < models.DEFAULT_PAGINATION_LIMIT {
 		nextPage = "nonext"
@@ -290,14 +344,62 @@ func (c *enterpriseController) ManagerShowAllVehicles(ctx *gin.Context) {
 		"nextpage":       nextPage,
 		"prevpage":       prevPage,
 		"managerID":      managerId,
+		"enterpriseID":   cookietEntID,
 	}
-
-	fmt.Println(len(vehicles))
-
-	fmt.Println(ctx.Request.URL.Query())
 
 	ctx.SetCookie("last_page", currentPage, 15, "/", "localhost", false, true)
 	ctx.HTML(http.StatusOK, "vehicles.html", data)
+}
+
+func (c *enterpriseController) ManagerShowVehicleRides(ctx *gin.Context) {
+	managerId, _ := strconv.ParseUint(ctx.Param("id"), 0, 0)
+	vehicleId, _ := strconv.ParseUint(ctx.Param("vehicle_id"), 0, 0)
+
+	fmt.Println("Я ПРОСТО ВАХУЕ БЛЯДЬ")
+	timeNB, timeNA, err := utils.UrlQTimeStampsToUTCStrings(ctx)
+	fmt.Println(timeNB, timeNA, err)
+	if timeNB == "" && timeNA == "" {
+		data := gin.H{
+			"selectdate": true,
+			"managerID":  managerId,
+			"vehicleID":  vehicleId,
+		}
+		ctx.HTML(http.StatusOK, "rides.html", data)
+	} else {
+		rides, _ := c.ManagerHumanReadRides(ctx)
+		data := gin.H{
+
+			"selectdate": false,
+			"managerID":  managerId,
+			"vehicleID":  vehicleId,
+			"rides":      rides,
+		}
+		ctx.HTML(http.StatusOK, "rides.html", data)
+	}
+}
+
+func (c *enterpriseController) ManagerShowAllEnterprises(ctx *gin.Context) {
+
+	managerId, _ := strconv.ParseUint(ctx.Param("id"), 0, 0)
+	manager := c.service.ManagerByID(uint(managerId))
+
+	enterprises := c.service.FindAllEnterprisesByIDs(manager.AccessibleEnterprises)
+
+	data := gin.H{
+		"enterprises": enterprises,
+		"managerID":   managerId,
+	}
+	ctx.HTML(http.StatusOK, "enterprises.html", data)
+}
+
+func (c *enterpriseController) ManagerShowRideRoute(ctx *gin.Context) {
+
+	// points :=
+
+	// data := gin.H{
+	// 	"points": points,
+	// }
+	// ctx.HTML(http.StatusOK, "ride-route-map.html", data)
 }
 
 func (c *enterpriseController) ManagerShowCreateVehicle(ctx *gin.Context) {
@@ -483,6 +585,7 @@ func (c *enterpriseController) ManagerHumanReadRides(ctx *gin.Context) ([]models
 		geoPointsLen := len(ride.GeoPoints)
 		humanReadableRides = append(humanReadableRides, models.HumanReadRide{
 			VehicleID:    ride.VehicleID,
+			RideID:       ride.ID,
 			RideStart:    ride.RideStart,
 			StartAddress: utils.GeocodeToAddress(ride.GeoPoints[0].GeoY, float64(ride.GeoPoints[0].GeoX)),
 
