@@ -1,6 +1,8 @@
 package models
 
 import (
+	"time"
+
 	"github.com/jinzhu/gorm"
 	"github.com/lib/pq"
 )
@@ -53,8 +55,10 @@ type EnterpriseService interface {
 	ManagerGetVehicleRoutesGeoJSON(vehicleID uint, notBefore string, notAfter string) (string, error)
 	ManagerGetVehicleRoutesGeopoints(vehicleID uint, notBefore string, notAfter string) ([]GeoPoint, error)
 	ManagerSaveGeoPoint(geoPoint GeoPoint) error
+	GeoPointsByDates(notBefore, notAfter time.Time) []GeoPoint
 
 	SaveRide(r Ride) error
+	RideByID(id uint) Ride
 	ManagerGetVehicleRides(vehicleID uint, notBefore string, notAfter string, inGeoJsons bool) ([]Ride, error)
 
 	ManagerFindAllDrivers(accessibleEnterprises pq.Int64Array) []Driver
@@ -106,6 +110,10 @@ func (service *enterpriseSerivce) VehicleByID(id uint) Vehicle {
 	return service.vehicleDB.VehicleByID(id)
 }
 
+func (service *enterpriseSerivce) RideByID(id uint) Ride {
+	return service.vehicleDB.RideByID(id)
+}
+
 func (service *enterpriseSerivce) FindAllEnterprisesByIDs(enterprisesIDs pq.Int64Array) []Enterprise {
 	return service.vehicleDB.FindAllEnterprisesByIDs(enterprisesIDs)
 }
@@ -145,6 +153,9 @@ func (service *enterpriseSerivce) ManagerSaveGeoPoint(geoPoint GeoPoint) error {
 	return service.vehicleDB.ManagerSaveGeoPoint(geoPoint)
 }
 
+func (service *enterpriseSerivce) GeoPointsByDates(notBefore, notAfter time.Time) []GeoPoint {
+	return service.vehicleDB.GeoPointsByDates(notBefore, notAfter)
+}
 func (service *enterpriseSerivce) ManagerGetVehicleRides(vehicleID uint, notBefore string, notAfter string, inGeoJsons bool) ([]Ride, error) {
 	return service.vehicleDB.ManagerGetVehicleRides(vehicleID, notBefore, notAfter, inGeoJsons)
 }

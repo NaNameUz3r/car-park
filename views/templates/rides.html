@@ -16,7 +16,7 @@
     <label for="dateofbirth">To</label>
     <input type="date" name="notAfter" id="notAfter">
   </div>
-  <button type="submit" class="btn btn-primary mt-3">Show Rides</button>
+  <button type="submit" class="btn btn-primary mt-3">Apply Date range</button>
 </form>
 
 <style>
@@ -75,7 +75,7 @@ input {
             <td>{{.RideDuration}}</td>
 
             <td>
-              <a class="btn btn-primary" href="/view/manager/{{$.managerID}}/vehicles/{{$.vehicleID}}/ride/{{.RideID}}/drawroute" role="button">Edit</a>
+              <a class="btn btn-primary" href="/view/manager/{{$.managerID}}/vehicles/{{$.vehicleID}}/ride/{{.RideID}}/drawroute" role="button">Show Route</a>
             </td>
 
           </tr>

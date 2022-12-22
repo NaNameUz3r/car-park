@@ -43,7 +43,6 @@ func checkArgs() error {
 
 	neAgrs := fmt.Errorf("Not enough arguments.")
 	wrongArgs := fmt.Errorf("Wrong argument combination.")
-	// fmt.Println(len(os.Args[1:]))
 	if len(os.Args[1:]) <= 3 {
 		err = neAgrs
 		return err
@@ -132,12 +131,10 @@ func main() {
 		os.Exit(1)
 	}
 
-	// fmt.Println(enterprises, cars)
 	PostVehicleUrl := "http://superadmin:superadminqwerty@localhost:8888/api/manager/666/vehicle/create"
 	PostDrivereUrl := "http://superadmin:superadminqwerty@localhost:8888/api/save/drivers"
 
 	for i, e := range enterprises {
-		fmt.Println("index: ", i, "enterpriseID: ", e, "cars amount: ", cars[i])
 
 		for car := 0; car < cars[i]; car++ {
 			rand.Seed(time.Now().UnixNano())
@@ -173,7 +170,6 @@ func main() {
 
 				var r Response
 				b, _ := io.ReadAll(resp.Body)
-				fmt.Println(string(b))
 				json.Unmarshal([]byte(b), &r)
 				vehicleID := r.ID
 

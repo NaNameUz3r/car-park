@@ -41,7 +41,10 @@ type VehicleDB interface {
 	ManagerGetVehicleRoutesGeopoints(VehicleID uint, notBefore, notAfter string) ([]GeoPoint, error)
 	ManagerSaveGeoPoint(geoPoint GeoPoint) error
 
+	GeoPointsByDates(notBefore, notAfter time.Time) []GeoPoint
+
 	SaveRide(r Ride) error
+	RideByID(id uint) Ride
 	ManagerGetVehicleRides(vehicleID uint, notBefore string, notAfter string, inGeoJsons bool) ([]Ride, error)
 
 	FindAllEnterprisesByIDs(enterprisesIDs pq.Int64Array) []Enterprise
@@ -119,6 +122,13 @@ func (db *dbConn) VehicleByID(id uint) Vehicle {
 	db.connection.Preload("CarModel").Find(&vehicle)
 	return vehicle
 
+}
+
+func (db *dbConn) RideByID(id uint) Ride {
+	var ride Ride
+	ride.ID = id
+	db.connection.Find(&ride)
+	return ride
 }
 
 func (db *dbConn) FindAllVehicles(preload bool) []Vehicle {
@@ -283,6 +293,12 @@ func (db *dbConn) ManagerGetVehicleRoutesGeopoints(VehicleID uint, notBefore str
 
 func (db *dbConn) ManagerSaveGeoPoint(geoPoint GeoPoint) error {
 	return db.connection.Create(&geoPoint).Error
+}
+
+func (db *dbConn) GeoPointsByDates(notBefore, notAfter time.Time) []GeoPoint {
+	var geoPoints []GeoPoint
+	db.connection.Order("track_time asc").Where("track_time >= ?", notBefore).Where("track_time <= ?", notAfter).Find(&geoPoints)
+	return geoPoints
 }
 
 func (db *dbConn) SaveRide(r Ride) error {

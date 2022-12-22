@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -195,7 +194,6 @@ func (c *enterpriseController) ManagerSetEnterprise(ctx *gin.Context) {
 	enterpriseId, _ := strconv.ParseUint(ctx.Param("enterprise_id"), 0, 0)
 	enterpriseIdStr := strconv.Itoa(int(enterpriseId))
 
-	fmt.Println(c.authManagerEntUpdates(ctx, int(enterpriseId)))
 	if c.authManagerEntUpdates(ctx, int(enterpriseId)) {
 
 		ctx.SetCookie("enterprise", enterpriseIdStr, 9999999, "/", "localhost", false, true)
@@ -236,7 +234,6 @@ func (c *enterpriseController) ManagerSaveVehicle(ctx *gin.Context) (err error) 
 	}
 
 	vehicle.CommissioningDate = time.Now().UTC()
-	fmt.Println("THIS IS THIS TIIIIMEEE", vehicle.CommissioningDate)
 
 	if c.authManagerEntUpdates(ctx, int(vehicle.EnterpriseID)) == true {
 		err = c.service.SaveVehicle(vehicle)
@@ -320,9 +317,7 @@ func (c *enterpriseController) ManagerShowAllVehicles(ctx *gin.Context) {
 	currentPageInt, _ := strconv.Atoi(currentPage)
 	nextPage := ""
 	prevPage := ""
-	fmt.Println(currentPage)
 
-	fmt.Println(currentPageInt, reflect.TypeOf(currentPageInt))
 	var accessibleEnterprises pq.Int64Array
 	accessibleEnterprises = append(accessibleEnterprises, int64(cookietEntID))
 	vehicles := c.service.ManagerFindAllVehicles(accessibleEnterprises, pagination, false)
@@ -355,9 +350,10 @@ func (c *enterpriseController) ManagerShowVehicleRides(ctx *gin.Context) {
 	managerId, _ := strconv.ParseUint(ctx.Param("id"), 0, 0)
 	vehicleId, _ := strconv.ParseUint(ctx.Param("vehicle_id"), 0, 0)
 
-	fmt.Println("Я ПРОСТО ВАХУЕ БЛЯДЬ")
 	timeNB, timeNA, err := utils.UrlQTimeStampsToUTCStrings(ctx)
-	fmt.Println(timeNB, timeNA, err)
+	if err != nil {
+		log.Println(err)
+	}
 	if timeNB == "" && timeNA == "" {
 		data := gin.H{
 			"selectdate": true,
@@ -394,12 +390,15 @@ func (c *enterpriseController) ManagerShowAllEnterprises(ctx *gin.Context) {
 
 func (c *enterpriseController) ManagerShowRideRoute(ctx *gin.Context) {
 
-	// points :=
+	rideID, _ := strconv.ParseUint(ctx.Param("ride_id"), 0, 0)
+	ride := c.service.RideByID(uint(rideID))
+	points := c.service.GeoPointsByDates(ride.RideStart, ride.RideFinish)
 
-	// data := gin.H{
-	// 	"points": points,
-	// }
-	// ctx.HTML(http.StatusOK, "ride-route-map.html", data)
+	data := gin.H{
+		"points": points,
+		"apiKey": utils.APIKEY,
+	}
+	ctx.HTML(http.StatusOK, "ride-route-map.html", data)
 }
 
 func (c *enterpriseController) ManagerShowCreateVehicle(ctx *gin.Context) {
@@ -426,7 +425,7 @@ func (c *enterpriseController) ManagerShowEditVehicle(ctx *gin.Context) {
 
 	vehicle = c.service.VehicleByID(uint(vehicleId))
 	validate.Struct(vehicle)
-	fmt.Println(vehicle)
+
 	data := gin.H{
 		"title":                 "Edit car in stock",
 		"vehicle":               vehicle,
@@ -614,17 +613,14 @@ func (c *enterpriseController) AuthManager(ctx *gin.Context) error {
 	credsPair := strings.SplitN(string(payload), ":", 2)
 
 	manager := c.service.ManagerByCreds(credsPair[0], credsPair[1])
-	fmt.Println(manager)
 
 	if len(credsPair) != 2 {
 		manager = models.Manager{}
-		fmt.Println("TROUBLE IN PAIR")
 		return fmt.Errorf("Unauthorized")
 	}
 
 	if manager.ID != uint(managerIdFromURL) {
 		manager = models.Manager{}
-		fmt.Println("TROUBLE IN ID")
 		return fmt.Errorf("Unauthorized")
 	}
 	return nil

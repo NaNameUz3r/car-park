@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"car-park/models"
-	"fmt"
 	"net/http"
 	"strconv"
 
@@ -136,7 +135,6 @@ func (c *vehicleController) ShowEditVehicle(ctx *gin.Context) {
 
 	vehicle = c.service.VehicleByID(uint(id))
 	validate.Struct(vehicle)
-	fmt.Println(vehicle)
 	data := gin.H{
 		"title":          "Edit car in stock",
 		"vehicle":        vehicle,

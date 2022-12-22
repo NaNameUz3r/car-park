@@ -40,10 +40,10 @@
             </td>
 
             <td>
-              <a class="btn btn-primary" href="/view/manager/{{$.managerID}}/vehicles/{{.ID}}/rides" role="button">Rides</a>
+              <a class="btn btn-primary" href="/view/manager/{{$.managerID}}/vehicles/{{.ID}}/rides" role="button">Find Rides</a>
             </td>
             <td>
-              <a class="btn btn-primary" href="/view/manager/{{$.managerID}}/vehicles/edit/{{.ID}}" role="button">Edit</a>
+              <a class="btn btn-primary" href="/view/manager/{{$.managerID}}/vehicles/edit/{{.ID}}" role="button">Edit Vehicle</a>
             </td>
             <td>
               <form action="/api/manager/{{$.managerID}}/vehicle/{{.ID}}/delete" method="POST">
@@ -55,7 +55,7 @@
           {{ end }}
         </tbody>
       </table>
-          <a class="btn btn-primary btn-lg" href="/view/manager/{{.managerID}}/vehicle/create" role="button">Add car in stock.</a>
+          <a class="btn btn-primary btn-lg" href="/view/manager/{{.managerID}}/vehicle/create" role="button">Register new Vehicle in service.</a>
 
           {{ if ne .nextpage "nonext" }}
             <a class="btn btn-primary btn-lg" href="{{.nextpage}}" role="button">Nextpage</a>

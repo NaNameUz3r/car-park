@@ -2,35 +2,53 @@
 
 
 {{ template "header.html" .}}
-{{/* <head>
-<meta name="viewport" content="initial-scale=1.0, width=device-width" />
-</head> */}}
 
-<body style='margin: 0'>
-<div style="width: 100%; height: 100%" id="mapContainer"></div>
 
-<script>
+<html>
+  <body>
+    <div class="container pt-3">
+      <div style="width: 640px; height: 480px" id="mapContainer"></div>
+    </div>
+
+    <script>
       // Initialize the platform object:
       var platform = new H.service.Platform({
-        'apikey': '{{.apikey}}'
+        'apikey': '{{.apiKey}}'
       });
 
-	// Obtain the default map types from the platform object
+      // Obtain the default map types from the platform object
       var maptypes = platform.createDefaultLayers();
 
-      // Initialize a map:
+      // Instantiate (and display) a map object:
       var map = new H.Map(
         document.getElementById('mapContainer'),
-        maptypes.raster.terrain.map,
+        maptypes.vector.normal.map,
         {
-          zoom: 17,
-          center: { lat: lat, lng: lon }
+          zoom: 1,
+
         });
+
+      // Define points to represent the vertices of a short route in Berlin, Germany:
       var points = [
         {{ range .points }}
-        { lat: .GeoY, lng: GeoX },
+        { lat: {{.GeoY}}, lng: {{.GeoX}} },
         {{ end }}
       ];
-</script>
+
+      // Initialize a linestring and add all the points to it:
+      var linestring = new H.geo.LineString();
+      points.forEach(function(point) {
+        linestring.pushPoint(point);
+      });
+
+      // Initialize a polyline with the linestring:
+      var polyline = new H.map.Polyline(linestring, { style: { lineWidth: 10 }});
+
+      // Add the polyline to the map:
+      map.addObject(polyline);
+
+      // Zoom the map to fit the rectangle:
+      map.getViewModel().setLookAtData({bounds: polyline.getBoundingBox()});
+    </script>
 
 {{ template "footer.html" .}}
