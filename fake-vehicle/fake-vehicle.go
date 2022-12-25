@@ -26,6 +26,13 @@ type GeoPoint struct {
 	// VehicleID uint    `json:"vehicle_id"`
 }
 
+type Ride struct {
+	RideStart    string  `json:"ride_start_time"`
+	RideFinish   string  `json:"ride_finish_time"`
+	VehicleID    uint    `json:"vehicle_id"`
+	RideDistance float64 `json:"ride_distance"`
+}
+
 type OpenStreetMapRoute struct {
 	Type     string `json:"type"`
 	Features []struct {
@@ -224,6 +231,16 @@ func getReverseGeolocationAddress(gp GeoPoint) (string, error) {
 	return addressLabel, nil
 }
 
+func timeNow(shift int) time.Time {
+	var timeStamp time.Time
+	if shift > 0 {
+		timeStamp = time.Now().AddDate(0, 0, shift)
+	} else {
+		timeStamp = time.Now()
+	}
+	return timeStamp
+}
+
 func main() {
 
 	vehicleID := flag.Int("vehicleID", -1, "vehicle ID")
@@ -232,6 +249,8 @@ func main() {
 	vehicleStartX := flag.Float64("vehicleStartX", -83.16511660044354, "vehicle start longitude")
 	vehicleStartY := flag.Float64("vehicleStartY", 42.53186889829862, "vehicle start latitude")
 	withinRadius := flag.Float64("withinRadius", 15000, "radius where to generate random ride endpoint")
+	timeShiftDays := flag.Int("timeShiftDays", 0, "Forward time shift in days")
+	napSecond := flag.Bool("napSecond", false, "No calculate 'realistic' naptime and nap second between geopoints posts")
 	flag.Parse()
 
 	center := GeoPoint{GeoX: *vehicleStartX, GeoY: *vehicleStartY}
@@ -286,6 +305,7 @@ func main() {
 	avgPointPassTime := avgGeopointsDistance / magicAvgSpeed
 	trafficJamIndex := 8.3
 	gpsWriterNapTime := avgPointPassTime * trafficJamIndex
+	rideDistance := orsRoute.Features[0].Properties.Summary.Distance
 
 	finishSlice := orsRoute.Features[0].Geometry.Coordinates[geopointsCount-1]
 	finishGeoPoint := GeoPoint{GeoX: finishSlice[0], GeoY: finishSlice[1]}
@@ -305,12 +325,14 @@ func main() {
 	fmt.Println("-----------------------------------------------------------")
 	fmt.Println("STARTING MOVEMENT:")
 
-	carParkApiUrl := "http://" + MANAGER_LOGIN + ":" + MANAGER_PASSWORD + "@localhost:8888/api/manager/1/vehicle/" + strconv.Itoa(25169) + "/checkpoint"
+	carParkApiUrl := "http://" + MANAGER_LOGIN + ":" + MANAGER_PASSWORD + "@localhost:8888/api/manager/1/vehicle/" + strconv.Itoa(*vehicleID) + "/checkpoint"
 
+	// adding start pint and record start time for ride start
+	rideStartTime := TimeStampToUTCPFC3339String(timeNow(*timeShiftDays))
 	startPoint := GeoPoint{
 		GeoX:      center.GeoX,
 		GeoY:      center.GeoY,
-		TrackTime: TimeStampToUTCPFC3339String(time.Now()),
+		TrackTime: rideStartTime,
 	}
 	postGeoPoint(startPoint, carParkApiUrl)
 
@@ -320,11 +342,28 @@ func main() {
 			GeoX: coordinate[0],
 			GeoY: coordinate[1],
 			// VehicleID: uint(*vehicleID),
-			TrackTime: TimeStampToUTCPFC3339String(time.Now()),
+			TrackTime: TimeStampToUTCPFC3339String(timeNow(*timeShiftDays)),
 		}
 		postGeoPoint(geoPoint, carParkApiUrl)
-		time.Sleep(time.Second * time.Duration(gpsWriterNapTime))
+		fmt.Println("GEOPOINT_RECORDED: ", geoPoint)
+		if *napSecond {
+			time.Sleep(time.Second * 1)
+		} else {
+			time.Sleep(time.Second * time.Duration(gpsWriterNapTime))
+		}
 	}
+
+	rideFinishTime := TimeStampToUTCPFC3339String(timeNow(*timeShiftDays))
+
+	ridePostApiURL := "http://" + MANAGER_LOGIN + ":" + MANAGER_PASSWORD + "@localhost:8888/api/save/ride"
+
+	ride := Ride{
+		RideStart:    rideStartTime,
+		RideFinish:   rideFinishTime,
+		VehicleID:    uint(*vehicleID),
+		RideDistance: rideDistance,
+	}
+	postRide(ridePostApiURL, ride)
 
 }
 
@@ -346,5 +385,24 @@ func postGeoPoint(gp GeoPoint, url string) {
 		log.Println(err)
 	}
 	fmt.Sprintln(resp)
+	resp.Body.Close()
+}
+
+func postRide(url string, ride Ride) {
+	rideJson, err := json.Marshal(ride)
+	println(string(rideJson))
+	if err != nil {
+		fmt.Println(err)
+	}
+	resp, err2 := http.Post(url, "application/json", bytes.NewBuffer(rideJson))
+	if err2 != nil {
+		fmt.Println(err2)
+	}
+
+	fmt.Println(resp.StatusCode)
+	body, err := ioutil.ReadAll(resp.Body)
+	bodyString := string(body)
+	fmt.Println("Ride post response: ")
+	fmt.Println(bodyString)
 	resp.Body.Close()
 }

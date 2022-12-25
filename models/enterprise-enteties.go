@@ -63,6 +63,8 @@ type EnterpriseService interface {
 
 	ManagerFindAllDrivers(accessibleEnterprises pq.Int64Array) []Driver
 	ManagerByCreds(username, password string) Manager
+
+	ReportsByTypeInRange(reportType string, reportPeriod string, notBefore string, notAfter string) []Report
 }
 
 type enterpriseSerivce struct {
@@ -112,6 +114,10 @@ func (service *enterpriseSerivce) VehicleByID(id uint) Vehicle {
 
 func (service *enterpriseSerivce) RideByID(id uint) Ride {
 	return service.vehicleDB.RideByID(id)
+}
+
+func (service *enterpriseSerivce) ReportsByTypeInRange(reportType, reportPeriod, notBefore, notAfter string) []Report {
+	return service.vehicleDB.ReportsByType(reportType, reportPeriod, notBefore, notAfter)
 }
 
 func (service *enterpriseSerivce) FindAllEnterprisesByIDs(enterprisesIDs pq.Int64Array) []Enterprise {

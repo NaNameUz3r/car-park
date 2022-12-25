@@ -47,6 +47,8 @@ type VehicleDB interface {
 	RideByID(id uint) Ride
 	ManagerGetVehicleRides(vehicleID uint, notBefore string, notAfter string, inGeoJsons bool) ([]Ride, error)
 
+	ReportsByType(reportType, reportPeriod, notBefore, notAfter string) []Report
+
 	FindAllEnterprisesByIDs(enterprisesIDs pq.Int64Array) []Enterprise
 	FindAllDrivers() []Driver
 
@@ -338,6 +340,13 @@ func (db *dbConn) ManagerGetVehicleRides(vehicleID uint, notBefore string, notAf
 	}
 
 	return rides, result.Error
+}
+
+//TODO: DELETE IT IS REDUNDANT
+func (db *dbConn) ReportsByType(reportType, reportPeriod, notBefore, notAfter string) []Report {
+	var reports []Report
+	db.connection.Where("report_type = ?", reportType).Where("not_before >= ?", notBefore).Where("not_after <= ?", notAfter).Find(&reports)
+	return reports
 }
 
 func (db *dbConn) LoadFixturesGeotracks(vehicleID uint) {

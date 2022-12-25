@@ -41,11 +41,12 @@ func (g *GeoPoint) AfterFind(tx *gorm.DB) (err error) {
 
 type Ride struct {
 	gorm.Model
-	RideStart  time.Time  `json:"ride_start_time"`
-	RideFinish time.Time  `json:"ride_finish_time"`
-	VehicleID  uint       `json:"vehicle_id"`
-	GeoPoints  []GeoPoint `gorm:"-" json:"geo_points,omitempty"`
-	GeoJSON    string     `gorm:"-" json:"geo_json,omitempty"`
+	RideStart    time.Time  `json:"ride_start_time"`
+	RideFinish   time.Time  `json:"ride_finish_time"`
+	VehicleID    uint       `json:"vehicle_id"`
+	GeoPoints    []GeoPoint `gorm:"-" json:"geo_points,omitempty"`
+	GeoJSON      string     `gorm:"-" json:"geo_json,omitempty"`
+	RideDistance float64    `json:"ride_distance"`
 }
 
 func (r *Ride) BeforeCreate(tx *gorm.DB) (err error) {

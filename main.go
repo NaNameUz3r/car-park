@@ -80,6 +80,7 @@ func main() {
 		viewRoutes.GET("/manager/:id/vehicles/edit/:vehicle_id", enterpriseController.ManagerShowEditVehicle)
 		viewRoutes.GET("/manager/:id/vehicles/:vehicle_id/rides", enterpriseController.ManagerShowVehicleRides)
 		viewRoutes.GET("/manager/:id/vehicles/:vehicle_id/ride/:ride_id/drawroute", enterpriseController.ManagerShowRideRoute)
+		viewRoutes.GET("/manager/:id/vehicles/:vehicle_id/reports", enterpriseController.ManagerShowVehicleReports)
 		viewRoutes.GET("/carmodels", vehicleController.ShowAllCarModels)
 	}
 	// TODO: Move "view" CRUD routes from /api to view group for applying CSRF for all of them.

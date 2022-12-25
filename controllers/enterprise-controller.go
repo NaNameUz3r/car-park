@@ -36,6 +36,8 @@ type EnterpriseController interface {
 	ManagerShowCreateVehicle(ctx *gin.Context)
 	ManagerShowEditVehicle(ctx *gin.Context)
 
+	ManagerShowVehicleReports(ctx *gin.Context)
+
 	ManagerFindAllVehicles(ctx *gin.Context, preload bool) []models.Vehicle
 	ManagerFindAllDrivers(ctx *gin.Context) []models.Driver
 	ManagerSaveVehicle(ctx *gin.Context) (err error)
@@ -350,6 +352,10 @@ func (c *enterpriseController) ManagerShowVehicleRides(ctx *gin.Context) {
 	managerId, _ := strconv.ParseUint(ctx.Param("id"), 0, 0)
 	vehicleId, _ := strconv.ParseUint(ctx.Param("vehicle_id"), 0, 0)
 
+	if !c.authManagerVehicleUpdates(ctx, uint(vehicleId)) {
+		ctx.Redirect(401, "Anauthorized")
+	}
+
 	timeNB, timeNA, err := utils.UrlQTimeStampsToUTCStrings(ctx)
 	if err != nil {
 		log.Println(err)
@@ -363,14 +369,59 @@ func (c *enterpriseController) ManagerShowVehicleRides(ctx *gin.Context) {
 		ctx.HTML(http.StatusOK, "rides.html", data)
 	} else {
 		rides, _ := c.ManagerHumanReadRides(ctx)
+		var noRides bool
+		if len(rides) == 0 {
+			noRides = true
+		} else {
+			noRides = false
+		}
 		data := gin.H{
 
 			"selectdate": false,
 			"managerID":  managerId,
 			"vehicleID":  vehicleId,
 			"rides":      rides,
+			"noRides":    noRides,
 		}
 		ctx.HTML(http.StatusOK, "rides.html", data)
+	}
+}
+
+func (c *enterpriseController) ManagerShowVehicleReports(ctx *gin.Context) {
+	managerId, _ := strconv.ParseUint(ctx.Param("id"), 0, 0)
+	vehicleId, _ := strconv.ParseUint(ctx.Param("vehicle_id"), 0, 0)
+	if !c.authManagerVehicleUpdates(ctx, uint(vehicleId)) {
+		ctx.Redirect(401, "Anauthorized")
+	}
+
+	timeNB, timeNA, err := utils.UrlQTimeStampsToUTCStrings(ctx)
+	if err != nil {
+		log.Println(err)
+	}
+	if timeNB == "" && timeNA == "" {
+		data := gin.H{
+			"selectdate": true,
+			"managerID":  managerId,
+			"vehicleID":  vehicleId,
+		}
+		ctx.HTML(http.StatusOK, "reports.html", data)
+	} else {
+		report, _ := c.ManagerGenerateReports(ctx)
+		var noReports bool
+		if len(report.Results) == 0 {
+			noReports = true
+		} else {
+			noReports = false
+		}
+		data := gin.H{
+
+			"selectdate": false,
+			"managerID":  managerId,
+			"vehicleID":  vehicleId,
+			"report":     report,
+			"noReports":  noReports,
+		}
+		ctx.HTML(http.StatusOK, "reports.html", data)
 	}
 }
 
@@ -594,6 +645,84 @@ func (c *enterpriseController) ManagerHumanReadRides(ctx *gin.Context) ([]models
 		})
 	}
 	return humanReadableRides, err
+}
+
+func (c *enterpriseController) ManagerGenerateReports(ctx *gin.Context) (models.Report, error) {
+	var report models.Report
+	report.Results = make(map[time.Time]interface{})
+	var err error
+
+	vehicleId, _ := strconv.ParseUint(ctx.Param("vehicle_id"), 0, 0)
+
+	reportType := ctx.Query("report_type")
+	reportPeriod := ctx.Query("time_period")
+	if reportType == "" {
+		return report, fmt.Errorf("ReportType or TimePeriod is not valid")
+	}
+
+	notBefore, notAfter, err := utils.UrlQTimeStampsToUTCStrings(ctx)
+
+	rides, err := c.service.ManagerGetVehicleRides(uint(vehicleId), notBefore, notAfter, false)
+
+	fmt.Println(rides[0].RideStart.ISOWeek())
+
+	switch reportPeriod {
+	case "ByDay":
+		report.TimePeriod = "Daily"
+		report.ReportType = reportType
+		for _, ride := range rides {
+			report.Results[ride.RideStart] = ride.RideDistance
+		}
+	case "ByWeek":
+		report.TimePeriod = "Weekly"
+		report.ReportType = reportType
+
+		swapWeekStart := rides[0].RideStart
+		swapWeekDistance := 0.0
+		for _, ride := range rides {
+			_, rideWeekNumber := ride.RideStart.ISOWeek()
+			_, swapWeekNumber := swapWeekStart.ISOWeek()
+			if rideWeekNumber == swapWeekNumber {
+				swapWeekDistance += ride.RideDistance
+			} else {
+				report.Results[swapWeekStart] = swapWeekDistance
+				swapWeekStart = ride.RideStart
+				swapWeekDistance = 0.0 + ride.RideDistance
+			}
+		}
+		_, lastRideWeekNumber := rides[len(rides)-1].RideStart.ISOWeek()
+		_, swapWeekNumber := swapWeekStart.ISOWeek()
+		if lastRideWeekNumber == swapWeekNumber {
+			report.Results[swapWeekStart] = swapWeekDistance
+		}
+
+	case "ByMonth":
+		report.TimePeriod = "Monthly"
+		report.ReportType = reportType
+
+		swapMonthStart := rides[0].RideStart
+		swapMonthDistance := 0.0
+		for _, ride := range rides {
+			rideMonth := ride.RideStart.Month()
+			swapMonthStartMonth := swapMonthStart.Month()
+			if rideMonth == swapMonthStartMonth {
+				swapMonthDistance += ride.RideDistance
+			} else {
+				report.Results[swapMonthStart] = swapMonthDistance
+				swapMonthStart = ride.RideStart
+				swapMonthDistance = 0.0 + ride.RideDistance
+			}
+		}
+		lastRideMonth := rides[len(rides)-1].RideStart.Month()
+		swapMonthStartMonth := swapMonthStart.Month()
+		if lastRideMonth == swapMonthStartMonth {
+			report.Results[swapMonthStart] = swapMonthDistance
+		}
+	}
+
+	fmt.Println(report)
+
+	return report, err
 }
 
 func (c *enterpriseController) AuthManager(ctx *gin.Context) error {

@@ -6,8 +6,8 @@
 <main class="flex-shrink-0">
   <div class="container pt-3">
 
-<h3> Select timerange for rides list </h1>
-<form action="/view/manager/{{.managerID}}/vehicles/{{.vehicleID}}/rides" method="GET">
+<h3> Select timerange for reports list </h1>
+<form action="/view/manager/{{.managerID}}/vehicles/{{.vehicleID}}/reports" method="GET">
 
   <div class="form-group">
 
@@ -17,8 +17,33 @@
     <label for="dateofbirth">To</label>
     <input type="date" name="notAfter" id="notAfter">
   </div>
-  <button type="submit" class="btn btn-primary mt-3">Apply Date range</button>
+
+  <div class="form-group mt-2">
+      <label for="report_type">Report Type</label>
+      <div class="input-group">
+      <select class="custom-select form-control" id="report_type" name="report_type">
+      <option hidden>Choose the Report Type</option>
+      <option value="MilageReport">Milage Report</option>
+    </select>
+  </div>
+
+
+  <div class="form-group mt-2">
+      <label for="time_period">Time Period</label>
+      <div class="input-group">
+      <select class="custom-select form-control" id="time_period" name="time_period">
+      <option hidden>Choose report time period</option>
+      <option value="ByDay">By day</option>
+      <option value="ByWeek">By Week</option>
+      <option value="ByMonth">By Month</option>
+    </select>
+  </div>
+
+<button type="submit" class="btn btn-primary mt-3">Submit request</button>
 </form>
+
+
+
 
 <style>
 [type="date"] {
@@ -49,59 +74,46 @@ input {
 
 {{else}}
 
-{{ if .noRides }}
+{{ if .noReports }}
 <main class="flex-shrink-0">
   <div class="container pt-3">
-    <h3> No rides in provided time range for vehicle # {{$.vehicleID}} </h3>
+    <h3> No reports in provided time range for vehicle # {{$.vehicleID}} </h3>
     <form>
       <input class="btn btn-primary" type="button" value="Go back" onclick="history.back()">
     </form>
   </div>
 </main>
 {{else}}
+
+
+
 <main class="flex-shrink-0">
   <div class="container pt-3">
 
-    <h3 class="mt-5">Car #{{.vehicleID}} Rides</h3>
+    <h3 class="mt-5">Car #{{.vehicleID}} {{.report.TimePeriod}} {{.report.ReportType}}</h3>
 
       <table class="table mt-5">
         <thead>
           <tr>
-            <th scope="col">Ride ID</th>
-            <th scope="col">Ride Start Time</th>
-            <th scope="col">Start Address</th>
-            <th scope="col">Ride Finish Time</th>
-            <th scope="col">Finish Address</th>
-            <th scope="col">Trip duration</th>
-            <th scope="col"></th>
+            <th scope="col">Segment Start Time </th>
+            <th scope="col">Distance</th>
           </tr>
         </thead>
         <tbody class="table-group-divider">
-          {{ range .rides }}
+
+
+          {{ range $key, $value := .report.Results }}
           <tr>
-            <th>{{.RideID}}</th>
-            <th scope="row">
+            <th>
                 <script>
-                  var localdateRideStart = new Date({{.RideStart}}).toLocaleTimeString('ru-Ru', { day:"numeric", year:"numeric", month:"short", time:"numeric"})
-                  document.write(localdateRideStart)
+                  var localdateStart = new Date({{$key}}).toLocaleTimeString('ru-Ru', { day:"numeric", year:"numeric", month:"short", time:"numeric"})
+                  document.write(localdateStart)
                 </script>
             </th>
-            <td>{{.StartAddress}}</td>
-            <td>
-                <script>
-                  var localdateRideFinish = new Date({{.RideFinish}}).toLocaleTimeString('ru-Ru', { day:"numeric", year:"numeric", month:"short", time:"numeric"})
-                  document.write(localdateRideFinish)
-                </script>
-            </td>
-            <td>{{.FinishAddress}}</td>
-            <td>{{.RideDuration}}</td>
-
-            <td>
-              <a class="btn btn-primary" href="/view/manager/{{$.managerID}}/vehicles/{{$.vehicleID}}/ride/{{.RideID}}/drawroute" role="button">Show Route</a>
-            </td>
-
+            <th>
+              {{ $value }}
+            </th>
           </tr>
-
           {{ end }}
         </tbody>
       </table>
@@ -110,6 +122,8 @@ input {
           </form>
   </div>
 </main>
+
+
 {{end}}
 {{end}}
 

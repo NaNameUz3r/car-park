@@ -83,6 +83,11 @@
     <input type="number" step="0.1" min="0" id="totalAmt" name="enginevolume" class="form-control" id="enginevolume" placeholder="{{.vehicle.CarModel.Seats}}">
   </div>
   <button type="submit" class="btn btn-primary mt-3">Ok. Apply changes.</button>
+
+</form>
+
+<form action="/api/manager/{{$.managerID}}/vehicle/{{.vehicle.ID}}/delete" method="POST">
+    <button type="submit" class="btn btn-danger mt-1">Delete Vehicle from Service</button>
 </form>
 
 </div>
