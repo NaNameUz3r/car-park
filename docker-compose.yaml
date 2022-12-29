@@ -4,18 +4,28 @@ services:
   carpark:
     build:
       context: ./
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile_app
     depends_on:
       - db
     links:
       - db
     ports:
       - 8888:8888
+    environment:
+      DB_HOST: db
   db:
-    image: postgres:13.2-alpine
+    build:
+      context: ./
+      dockerfile: Dockerfile_db
     ports:
       - 5432:5432
     environment:
-        POSTGRES_DB: car_park_dev
-        POSTGRES_USER: admin
+        # POSTGRES_DB: car_park_dev
+        POSTGRES_USER: car_park_admin
         POSTGRES_PASSWORD: qwerty
+        FORCE_SSL: "FALSE"
+    healthcheck:
+        test: ["CMD", "curl", "-f", "telnet://localhost:5432"]
+        interval: 30s
+        timeout: 10s
+        retries: 5

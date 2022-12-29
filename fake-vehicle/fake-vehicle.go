@@ -231,10 +231,10 @@ func getReverseGeolocationAddress(gp GeoPoint) (string, error) {
 	return addressLabel, nil
 }
 
-func timeNow(shift int) time.Time {
+func timeNow(shift int64) time.Time {
 	var timeStamp time.Time
 	if shift > 0 {
-		timeStamp = time.Now().AddDate(0, 0, shift)
+		timeStamp = time.Now().Add(time.Hour * 24 * time.Duration(shift))
 	} else {
 		timeStamp = time.Now()
 	}
@@ -249,7 +249,7 @@ func main() {
 	vehicleStartX := flag.Float64("vehicleStartX", -83.16511660044354, "vehicle start longitude")
 	vehicleStartY := flag.Float64("vehicleStartY", 42.53186889829862, "vehicle start latitude")
 	withinRadius := flag.Float64("withinRadius", 15000, "radius where to generate random ride endpoint")
-	timeShiftDays := flag.Int("timeShiftDays", 0, "Forward time shift in days")
+	timeShiftDays := flag.Int64("timeShift", 123, "Forward time shift in days")
 	napSecond := flag.Bool("napSecond", false, "No calculate 'realistic' naptime and nap second between geopoints posts")
 	flag.Parse()
 
@@ -328,6 +328,7 @@ func main() {
 	carParkApiUrl := "http://" + MANAGER_LOGIN + ":" + MANAGER_PASSWORD + "@localhost:8888/api/manager/1/vehicle/" + strconv.Itoa(*vehicleID) + "/checkpoint"
 
 	// adding start pint and record start time for ride start
+	fmt.Println("TIMESHIFT-------->", *timeShiftDays)
 	rideStartTime := TimeStampToUTCPFC3339String(timeNow(*timeShiftDays))
 	startPoint := GeoPoint{
 		GeoX:      center.GeoX,

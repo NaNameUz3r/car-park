@@ -300,8 +300,6 @@ func (c *enterpriseController) ManagerShowAllVehicles(ctx *gin.Context) {
 	}
 
 	managerId, _ := strconv.ParseUint(ctx.Param("id"), 0, 0)
-	// manager := c.service.ManagerByID(uint(managerId))
-	// accessibleEnterprises := manager.AccessibleEnterprises
 
 	cookieEnterprise, err := ctx.Cookie("enterprise")
 	if err != nil {
@@ -322,7 +320,7 @@ func (c *enterpriseController) ManagerShowAllVehicles(ctx *gin.Context) {
 
 	var accessibleEnterprises pq.Int64Array
 	accessibleEnterprises = append(accessibleEnterprises, int64(cookietEntID))
-	vehicles := c.service.ManagerFindAllVehicles(accessibleEnterprises, pagination, false)
+	vehicles := c.service.ManagerFindAllVehicles(accessibleEnterprises, pagination, true)
 	if len(vehicles) < models.DEFAULT_PAGINATION_LIMIT {
 		nextPage = "nonext"
 	} else {
