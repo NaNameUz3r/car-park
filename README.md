@@ -17,3 +17,5 @@ docker-compose up
 ```
 And log in with "admin2" username, and "qwerty" password.
 There is, actually admin1 with same password. Explore :D
+
+The dump contains a bunch of rides for 2023-2024 years for vehicles with ID's  25184,25185 and 25186
