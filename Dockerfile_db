@@ -1,2 +1,0 @@
-FROM kartoza/postgis:15-3
-ADD ./fixture_dump.sql /docker-entrypoint-initdb.d/setup-db.sql

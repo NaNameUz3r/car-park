@@ -3,8 +3,8 @@ version: '3.7'
 services:
   carpark:
     build:
-      context: ./
-      dockerfile: Dockerfile_app
+      context: ../
+      dockerfile: ./Docker/Dockerfile_app
     depends_on:
       - db
     links:
@@ -13,10 +13,11 @@ services:
       - 8888:8888
     environment:
       DB_HOST: db
+      HERE_API_KEY: ${HERE_API_KEY}
   db:
     build:
-      context: ./
-      dockerfile: Dockerfile_db
+      context: ../
+      dockerfile: ./Docker/Dockerfile_db
     ports:
       - 5432:5432
     environment:

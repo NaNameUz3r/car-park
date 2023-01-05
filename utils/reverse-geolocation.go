@@ -6,9 +6,10 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 )
 
-var APIKEY = "r6YsPZAcZw218_dYQta0r5zo-Y2H8ItP4TSRN6iwuv4"
+var APIKEY = os.Getenv("HERE_API_KEY")
 
 type output struct {
 	Items []struct {

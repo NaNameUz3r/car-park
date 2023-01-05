@@ -1,0 +1,2 @@
+FROM kartoza/postgis:15-3
+ADD ./Docker/mock_dump.sql /docker-entrypoint-initdb.d/setup-db.sql
